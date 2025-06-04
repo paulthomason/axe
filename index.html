@@ -56,9 +56,9 @@
   const TARGET_X = CANVAS_WIDTH / 2;
   const TARGET_Y = CANVAS_HEIGHT / 3;
   const TARGET_RADIUS_OUTER = 100;
-  const TARGET_RADIUS_MIDDLE = 60;
-  const TARGET_RADIUS_INNER = 45;
-  const BULLSEYE_IMAGE_DIAMETER = 90;
+  const TARGET_RADIUS_MIDDLE = 65;
+  const TARGET_RADIUS_INNER = 30;
+  const BULLSEYE_IMAGE_DIAMETER = 60;
 
   // Axe
   const AXE_START_X = CANVAS_WIDTH / 2;
@@ -403,6 +403,14 @@
     ctx.moveTo(TARGET_X, TARGET_Y - TARGET_RADIUS_OUTER - 15);
     ctx.lineTo(TARGET_X, TARGET_Y + TARGET_RADIUS_OUTER + 15);
     ctx.stroke();
+
+    // Score numbers
+    ctx.font = "bold 20px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#000";
+    ctx.fillText("5", TARGET_X, TARGET_Y - (TARGET_RADIUS_OUTER + TARGET_RADIUS_MIDDLE)/2);
+    ctx.fillText("7", TARGET_X, TARGET_Y - (TARGET_RADIUS_MIDDLE + TARGET_RADIUS_INNER)/2);
     ctx.restore();
   }
 
