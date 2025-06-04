@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Axe Throwing Challenge</title>
+  <style>
+    body {
+      background: #f6f6f8;
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      font-size: 2.4rem;
+      letter-spacing: 2px;
+    }
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 6px 30px rgba(80,80,100,0.13);
+      border-radius: 10px;
+      border: 1.5px solid #b0b0c0;
+    }
+    #instructions {
+      margin: 20px auto 0;
+      max-width: 650px;
+      text-align: center;
+      color: #222;
+      font-size: 1.08rem;
+      letter-spacing: .5px;
+    }
+    @media (max-width: 850px) {
+      #gameCanvas { width: 97vw; height: 72vw; max-width:800px; max-height:600px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Axe Throwing Challenge</h1>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="instructions">
+    Use <b>SPACEBAR</b> to lock each slider and throw. Can you hit the bullseye 5 times?
+  </div>
+<script>
+  // ==== Constants ====
+  const CANVAS_WIDTH = 800, CANVAS_HEIGHT = 600;
+
+  // Target (bullseye)
+  const TARGET_X = CANVAS_WIDTH / 2;
+  const TARGET_Y = CANVAS_HEIGHT / 3;
+  const TARGET_RADIUS_OUTER = 100;
+  const TARGET_RADIUS_MIDDLE = 60;
+  const TARGET_RADIUS_INNER = 45;
+  const BULLSEYE_IMAGE_DIAMETER = 90;
+
+  // Axe
+  const AXE_START_X = CANVAS_WIDTH / 2;
+  const AXE_START_Y = CANVAS_HEIGHT - 100;
+  const DESIRED_AXE_SPRITE_HEIGHT = 55;
+
+  // Sliders
+  const SLIDER_LENGTH = 150;
+  const SLIDER_THICKNESS = 20;
+  const SLIDER_MARKER_W = 10, SLIDER_MARKER_H = 30;
+  const SLIDER_MARKER_L = 30, SLIDER_MARKER_T = 4;
+
+  // Slider speeds (px/sec)
+  const HORIZ_SLIDER_SPEED = 200;
+  const VERT_SLIDER_SPEED = 150;
+  const POWER_SLIDER_SPEED = 250;
+
+  // Colors
+  const WOOD_BROWN = "#c28853";
+  const DARK_WOOD_BROWN = "#704e2e";
+
+  // States
+  const STATE_LOADING           = 0;
+  const STATE_AIM_HORIZONTAL    = 1;
+  const STATE_AIM_VERTICAL      = 2;
+  const STATE_AIM_POWER         = 3;
+  const STATE_THROWING          = 4;
+  const STATE_SHOWING_RESULT    = 5;
+  const STATE_GAME_OVER         = 6;
+
+  // Power
+  const POWER_IDEAL = 0.65;
+  const POWER_MIN_STICK = 0.2, POWER_MAX_STICK = 0.95;
+
+  // Throws/Scoring
+  const START_THROWS = 5;
+
+  // Misc
+  const RESULT_SHOW_TIME = 2000; // ms
+
+  // ==== Globals ====
+  let canvas, ctx;
+
+  let state = STATE_LOADING;
+
+  // Asset management
+  let axeImageRaw = null, axeImageScaled = null, axeImageOk = false;
+  let gorgImageRaw = null, gorgImageResized = null, gorgImageOk = false;
+  let assetsToLoad = 2;
+  let assetsLoaded = 0;
+  let assetLoadErrorAxe = false, assetLoadErrorGorg = false;
+
+  // Game
+  let score = 0, throwsLeft = START_THROWS;
+  let resultMsg = '', resultPoints = 0;
+  let showResultTimer = 0;
+
+  // Aiming/Sliders
+  let horizontalSliderPos = 0; // 0...1
+  let verticalSliderPos = 0;
+  let powerSliderPos = 0;
+  let horizSliderDir = 1;
+  let vertSliderDir = 1;
+  let powerSliderDir = 1;
+  let locked_horizontal_offset = 0;
+  let locked_vertical_offset = 0;
+  let locked_power_normalized = 0;
+
+  // Throw
+  let axeIsFlying = false;
+  let axeThrowProgress = 0; // 0...1
+  let axeAngle = 0;
+  let axeThrowDuration = 0.68; // sec
+  let axeTargetX = TARGET_X, axeTargetY = TARGET_Y;
+  let axeHitX = TARGET_X, axeHitY = TARGET_Y;
+
+  // For random offset/accuracy
+  let throw_random_dx = 0, throw_random_dy = 0;
+
+  // ----
+
+  window.onload = function() {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+
+    // Start loading assets
+    loadImages();
+
+    window.addEventListener('keydown', handleInput);
+    requestAnimationFrame(gameLoop);
+  };
+
+  // ==== Asset Loading & Processing ====
+  function loadImages() {
+    // Load axe.png
+    axeImageRaw = new Image();
+    axeImageRaw.onload = () => {
+      // Scale to DESIRED_AXE_SPRITE_HEIGHT, aspect correct
+      const aspect = axeImageRaw.width / axeImageRaw.height;
+      const scaledW = Math.round(DESIRED_AXE_SPRITE_HEIGHT * aspect);
+      axeImageScaled = document.createElement('canvas');
+      axeImageScaled.width = scaledW;
+      axeImageScaled.height = DESIRED_AXE_SPRITE_HEIGHT;
+      const axectx = axeImageScaled.getContext('2d');
+      axectx.drawImage(axeImageRaw, 0, 0, scaledW, DESIRED_AXE_SPRITE_HEIGHT);
+      axeImageOk = true;
+      assetLoaded();
+    };
+    axeImageRaw.onerror = () => {
+      assetLoadErrorAxe = true;
+      assetLoaded();
+    };
+    axeImageRaw.src = "axe.png";
+
+    // Load gorg.png
+    gorgImageRaw = new Image();
+    gorgImageRaw.onload = () => {
+      // Resize to fit BULLSEYE_IMAGE_DIAMETER, aspect correct
+      const scale = BULLSEYE_IMAGE_DIAMETER / Math.max(gorgImageRaw.width, gorgImageRaw.height);
+      const newW = Math.round(gorgImageRaw.width * scale);
+      const newH = Math.round(gorgImageRaw.height * scale);
+      gorgImageResized = document.createElement('canvas');
+      gorgImageResized.width = newW;
+      gorgImageResized.height = newH;
+      const gctx = gorgImageResized.getContext('2d');
+      gctx.drawImage(gorgImageRaw, 0, 0, newW, newH);
+      gorgImageOk = true;
+      assetLoaded();
+    };
+    gorgImageRaw.onerror = () => {
+      assetLoadErrorGorg = true;
+      assetLoaded();
+    };
+    gorgImageRaw.src = "gorg.png";
+  }
+
+  function assetLoaded() {
+    assetsLoaded++;
+    if (assetsLoaded === assetsToLoad) {
+      setTimeout(() => {
+        resetGame();
+        state = STATE_AIM_HORIZONTAL;
+      }, 500); // Brief delay for loading message
+    }
+  }
+
+  // ==== Main Game Loop ====
+  let prevTimestamp = 0;
+  function gameLoop(timestamp) {
+    const deltaTime = Math.min((timestamp - prevTimestamp) / 1000, 0.04) || 0.0167; // Clamp dt
+    prevTimestamp = timestamp;
+
+    update(deltaTime);
+    draw();
+
+    requestAnimationFrame(gameLoop);
+  }
+
+  // ==== Update ====
+  function update(dt) {
+    switch (state) {
+      case STATE_LOADING:
+        // Nothing to update
+        break;
+      case STATE_AIM_HORIZONTAL:
+        // Slider moves back and forth automatically
+        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * dt / SLIDER_LENGTH;
+        if (horizontalSliderPos > 1) { horizontalSliderPos = 1; horizSliderDir = -1; }
+        if (horizontalSliderPos < 0) { horizontalSliderPos = 0; horizSliderDir = 1; }
+        break;
+      case STATE_AIM_VERTICAL:
+        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * dt / SLIDER_LENGTH;
+        if (verticalSliderPos > 1) { verticalSliderPos = 1; vertSliderDir = -1; }
+        if (verticalSliderPos < 0) { verticalSliderPos = 0; vertSliderDir = 1; }
+        break;
+      case STATE_AIM_POWER:
+        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * dt / SLIDER_LENGTH;
+        if (powerSliderPos > 1) { powerSliderPos = 1; powerSliderDir = -1; }
+        if (powerSliderPos < 0) { powerSliderPos = 0; powerSliderDir = 1; }
+        break;
+      case STATE_THROWING:
+        if (axeIsFlying) {
+          axeThrowProgress += dt / axeThrowDuration;
+          axeAngle += dt * (400 * Math.PI / 180); // 400 deg/sec in radians
+          if (axeThrowProgress >= 1.0) {
+            axeThrowProgress = 1.0;
+            axeIsFlying = false;
+            evaluateThrow();
+          }
+        }
+        break;
+      case STATE_SHOWING_RESULT:
+        showResultTimer -= dt * 1000;
+        if (showResultTimer <= 0) {
+          if (throwsLeft > 0) {
+            // Reset for next throw
+            state = STATE_AIM_HORIZONTAL;
+            resetForNextThrow();
+          } else {
+            state = STATE_GAME_OVER;
+          }
+        }
+        break;
+      case STATE_GAME_OVER:
+        // Wait for user to press Space to reset
+        break;
+    }
+  }
+
+  // ==== Draw ====
+  function draw() {
+    // Clear
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // UI: Score and throws
+    ctx.save();
+    ctx.font = "22px Segoe UI, Arial";
+    ctx.fillStyle = "#1a1a1d";
+    ctx.textAlign = "left";
+    ctx.fillText("Score: " + score, 22, 36);
+    ctx.textAlign = "right";
+    ctx.fillText("Throws Left: " + throwsLeft, CANVAS_WIDTH - 22, 36);
+    ctx.restore();
+
+    // Center target
+    drawTarget();
+
+    // Draw sliders
+    if (state === STATE_AIM_HORIZONTAL) drawHorizontalSlider();
+    if (state === STATE_AIM_VERTICAL) drawVerticalSlider();
+    if (state === STATE_AIM_POWER) drawPowerSlider();
+
+    // Draw axe
+    if (state === STATE_AIM_HORIZONTAL || state === STATE_AIM_VERTICAL || state === STATE_AIM_POWER) {
+      drawAxeSprite(AXE_START_X, AXE_START_Y, 0);
+    }
+    else if (state === STATE_THROWING || state === STATE_SHOWING_RESULT || state === STATE_GAME_OVER) {
+      // Animate or show stuck axe
+      drawFlyingAxe();
+    }
+
+    // Overlay messages
+    switch (state) {
+      case STATE_LOADING:
+        ctx.save();
+        ctx.font = "32px Segoe UI, Arial";
+        ctx.fillStyle = "#233";
+        ctx.textAlign = "center";
+        ctx.fillText("Loading Assets...", CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 35);
+        ctx.restore();
+        break;
+      case STATE_AIM_HORIZONTAL:
+        drawSliderLabel("Aim Horizontal (Space)", TARGET_X, TARGET_Y + TARGET_RADIUS_OUTER + 90);
+        break;
+      case STATE_AIM_VERTICAL:
+        drawSliderLabel("Aim Vertical (Space)", TARGET_X - TARGET_RADIUS_OUTER - 85, TARGET_Y);
+        break;
+      case STATE_AIM_POWER:
+        drawSliderLabel("Set Power (Space)", TARGET_X + TARGET_RADIUS_OUTER + 85, TARGET_Y);
+        break;
+      case STATE_SHOWING_RESULT:
+        ctx.save();
+        ctx.font = "34px Segoe UI, Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#212122";
+        ctx.fillText(resultMsg, CANVAS_WIDTH/2, 470);
+        ctx.font = "24px Segoe UI, Arial";
+        ctx.fillText("+" + resultPoints + " points", CANVAS_WIDTH/2, 510);
+        ctx.restore();
+        break;
+      case STATE_GAME_OVER:
+        ctx.save();
+        ctx.font = "40px Segoe UI, Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#bf2b2b";
+        ctx.fillText("GAME OVER", CANVAS_WIDTH/2, 420);
+        ctx.font = "28px Segoe UI, Arial";
+        ctx.fillStyle = "#222";
+        ctx.fillText("Final Score: " + score, CANVAS_WIDTH/2, 470);
+        ctx.font = "22px Segoe UI, Arial";
+        ctx.fillText("Press Space to Play Again!", CANVAS_WIDTH/2, 510);
+        ctx.restore();
+        break;
+    }
+  }
+
+  // ==== Drawing Functions ====
+
+  function drawTarget() {
+    // Outer ring
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_OUTER, 0, Math.PI*2);
+    ctx.fillStyle = WOOD_BROWN;
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = DARK_WOOD_BROWN;
+    ctx.stroke();
+
+    // Middle ring
+    ctx.beginPath();
+    ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_MIDDLE, 0, Math.PI*2);
+    ctx.fillStyle = WOOD_BROWN;
+    ctx.fill();
+    ctx.strokeStyle = DARK_WOOD_BROWN;
+    ctx.stroke();
+
+    // Inner ring
+    ctx.beginPath();
+    ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_INNER, 0, Math.PI*2);
+    ctx.closePath();
+    ctx.save();
+    ctx.clip();
+
+    // Draw bullseye image or fallback
+    if (gorgImageOk && gorgImageResized) {
+      ctx.drawImage(
+        gorgImageResized,
+        TARGET_X - gorgImageResized.width/2,
+        TARGET_Y - gorgImageResized.height/2
+      );
+    } else {
+      ctx.fillStyle = "#e53636";
+      ctx.beginPath();
+      ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_INNER, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_INNER, 0, Math.PI*2);
+    ctx.stroke();
+
+    // Crosshairs
+    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = "#222";
+    ctx.beginPath();
+    ctx.moveTo(TARGET_X - TARGET_RADIUS_OUTER - 15, TARGET_Y);
+    ctx.lineTo(TARGET_X + TARGET_RADIUS_OUTER + 15, TARGET_Y);
+    ctx.moveTo(TARGET_X, TARGET_Y - TARGET_RADIUS_OUTER - 15);
+    ctx.lineTo(TARGET_X, TARGET_Y + TARGET_RADIUS_OUTER + 15);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawAxeSprite(x, y, angleRad) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angleRad);
+    if (axeImageOk && axeImageScaled) {
+      ctx.drawImage(
+        axeImageScaled,
+        -axeImageScaled.width/2,
+        -axeImageScaled.height/2
+      );
+    } else {
+      // Draw fallback axe: handle (brown rect), head (grey rect)
+      ctx.save();
+      // Handle
+      ctx.fillStyle = "#9c7a3c";
+      ctx.fillRect(-4, 10, 8, 30);
+      // Head
+      ctx.fillStyle = "#aaa";
+      ctx.fillRect(-13, -8, 26, 16);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "#555";
+      ctx.strokeRect(-13, -8, 26, 16);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawFlyingAxe() {
+    // If throwing, interpolate
+    let t = axeThrowProgress;
+    // Start pos
+    let sx = AXE_START_X, sy = AXE_START_Y;
+    // Target pos (landing point, includes random offset)
+    let ex = axeHitX, ey = axeHitY;
+
+    // Parabolic arc (arc_height, so flight is not a straight line)
+    let arc_height = 120 + 20 * Math.abs(locked_power_normalized - POWER_IDEAL);
+
+    let x = sx + (ex - sx) * t;
+    let y = sy + (ey - sy) * t - arc_height * Math.sin(Math.PI * t);
+
+    drawAxeSprite(x, y, axeAngle);
+  }
+
+  function drawHorizontalSlider() {
+    // Centered below target
+    const sx = TARGET_X - SLIDER_LENGTH/2;
+    const sy = TARGET_Y + TARGET_RADIUS_OUTER + 40;
+
+    // Slider bar
+    ctx.save();
+    ctx.fillStyle = "#2a85ea";
+    ctx.fillRect(sx, sy, SLIDER_LENGTH, SLIDER_THICKNESS);
+
+    // Marker (red vertical bar)
+    let mx = sx + horizontalSliderPos * SLIDER_LENGTH - SLIDER_MARKER_W/2;
+    ctx.fillStyle = "#e13b3b";
+    ctx.fillRect(mx, sy - (SLIDER_MARKER_H-SLIDER_THICKNESS)/2, SLIDER_MARKER_W, SLIDER_MARKER_H);
+
+    // Outline
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#134292";
+    ctx.strokeRect(sx, sy, SLIDER_LENGTH, SLIDER_THICKNESS);
+    ctx.restore();
+  }
+
+  function drawVerticalSlider() {
+    // To left of target, vertically centered
+    const sx = TARGET_X - TARGET_RADIUS_OUTER - 40 - SLIDER_THICKNESS;
+    const sy = TARGET_Y - SLIDER_LENGTH/2;
+
+    ctx.save();
+    ctx.fillStyle = "#2a85ea";
+    ctx.fillRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+
+    // Marker (red horizontal line)
+    let my = sy + verticalSliderPos * SLIDER_LENGTH;
+    ctx.fillStyle = "#e13b3b";
+    ctx.fillRect(sx - (SLIDER_MARKER_L - SLIDER_THICKNESS)/2, my - SLIDER_MARKER_T/2, SLIDER_MARKER_L, SLIDER_MARKER_T);
+
+    // Outline
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#134292";
+    ctx.strokeRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    ctx.restore();
+  }
+
+  function drawPowerSlider() {
+    // To right of target, vertically centered
+    const sx = TARGET_X + TARGET_RADIUS_OUTER + 40;
+    const sy = TARGET_Y - SLIDER_LENGTH/2;
+
+    ctx.save();
+    // Background bar
+    ctx.fillStyle = "#d9d9dd";
+    ctx.fillRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    // Fill (green, bottom up)
+    let fy = sy + SLIDER_LENGTH * (1 - powerSliderPos);
+    let fh = SLIDER_LENGTH * powerSliderPos;
+    ctx.fillStyle = "#4caf58";
+    ctx.fillRect(sx, fy, SLIDER_THICKNESS, fh);
+
+    // Outline
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#999";
+    ctx.strokeRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    ctx.restore();
+  }
+
+  function drawSliderLabel(text, x, y) {
+    ctx.save();
+    ctx.font = "22px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#134292";
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  // ==== Input ====
+  function handleInput(e) {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      switch (state) {
+        case STATE_AIM_HORIZONTAL:
+          // Lock horizontal offset
+          locked_horizontal_offset =
+            (horizontalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER * 1.2;
+          state = STATE_AIM_VERTICAL;
+          break;
+        case STATE_AIM_VERTICAL:
+          // Lock vertical offset
+          locked_vertical_offset =
+            (verticalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER * 1.2;
+          state = STATE_AIM_POWER;
+          break;
+        case STATE_AIM_POWER:
+          // Lock power, throw!
+          locked_power_normalized = powerSliderPos;
+          startThrow();
+          break;
+        case STATE_SHOWING_RESULT:
+          if (throwsLeft > 0) {
+            state = STATE_AIM_HORIZONTAL;
+            resetForNextThrow();
+          } else {
+            state = STATE_GAME_OVER;
+          }
+          break;
+        case STATE_GAME_OVER:
+          resetGame();
+          state = STATE_AIM_HORIZONTAL;
+          break;
+      }
+    }
+  }
+
+  // ==== Throwing Logic ====
+  function startThrow() {
+    state = STATE_THROWING;
+    axeIsFlying = true;
+    axeThrowProgress = 0;
+    axeAngle = 0;
+
+    // Compute target for this throw
+    // (Ideal power = minimal vertical deviation. Too low: drop below. Too high: overshoot upward)
+    let power_effect_factor = (POWER_IDEAL - locked_power_normalized) * (TARGET_RADIUS_OUTER * 2.0);
+
+    axeTargetX = TARGET_X + locked_horizontal_offset;
+    axeTargetY = TARGET_Y + locked_vertical_offset + power_effect_factor;
+
+    // Accuracy: randomness increases as power deviates from ideal
+    let power_accuracy_modifier = 1.0 - Math.abs(locked_power_normalized - POWER_IDEAL)/POWER_IDEAL;
+    power_accuracy_modifier = Math.max(0, power_accuracy_modifier); // Clamp
+    let max_rand = 18 * (1.0 - power_accuracy_modifier**2); // up to 18px if far from ideal
+    throw_random_dx = (Math.random()-0.5) * 2 * max_rand;
+    throw_random_dy = (Math.random()-0.5) * 2 * max_rand;
+
+    axeHitX = axeTargetX + throw_random_dx;
+    axeHitY = axeTargetY + throw_random_dy;
+  }
+
+  function evaluateThrow() {
+    // Did we stick the axe?
+    if (locked_power_normalized < POWER_MIN_STICK || locked_power_normalized > POWER_MAX_STICK) {
+      // Bad power
+      resultMsg = "Bad Power! No Stick!";
+      resultPoints = 0;
+    } else {
+      // Distance to center
+      let dx = axeHitX - TARGET_X;
+      let dy = axeHitY - TARGET_Y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+
+      if (dist <= TARGET_RADIUS_INNER) {
+        resultMsg = "Bullseye!";
+        resultPoints = 10;
+      } else if (dist <= TARGET_RADIUS_MIDDLE) {
+        resultMsg = "Great Shot!";
+        resultPoints = 7;
+      } else if (dist <= TARGET_RADIUS_OUTER) {
+        resultMsg = "On Target!";
+        resultPoints = 5;
+      } else {
+        resultMsg = "Missed!";
+        resultPoints = 0;
+      }
+    }
+    score += resultPoints;
+    throwsLeft--;
+
+    showResultTimer = RESULT_SHOW_TIME;
+    state = STATE_SHOWING_RESULT;
+  }
+
+  // ==== Utilities ====
+
+  function resetGame() {
+    score = 0;
+    throwsLeft = START_THROWS;
+    resultMsg = '';
+    resultPoints = 0;
+    resetForNextThrow();
+  }
+  function resetForNextThrow() {
+    horizontalSliderPos = Math.random();
+    verticalSliderPos = Math.random();
+    powerSliderPos = Math.random();
+    horizSliderDir = Math.random() < 0.5 ? 1 : -1;
+    vertSliderDir = Math.random() < 0.5 ? 1 : -1;
+    powerSliderDir = Math.random() < 0.5 ? 1 : -1;
+    locked_horizontal_offset = 0;
+    locked_vertical_offset = 0;
+    locked_power_normalized = 0;
+    axeIsFlying = false;
+    axeThrowProgress = 0;
+    axeAngle = 0;
+    axeHitX = TARGET_X;
+    axeHitY = TARGET_Y;
+  }
+</script>
+</body>
+</html>
