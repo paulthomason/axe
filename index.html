@@ -328,15 +328,6 @@
         ctx.fillText("Loading Assets...", CANVAS_WIDTH/2, CANVAS_HEIGHT/2 + 35);
         ctx.restore();
         break;
-      case STATE_AIM_HORIZONTAL:
-        drawSliderLabel("Aim Horizontal (Space)", TARGET_X, TARGET_Y + TARGET_RADIUS_OUTER + 90);
-        break;
-      case STATE_AIM_VERTICAL:
-        drawSliderLabel("Aim Vertical (Space)", TARGET_X - TARGET_RADIUS_OUTER - 85, TARGET_Y);
-        break;
-      case STATE_AIM_POWER:
-        drawSliderLabel("Set Power (Space)", TARGET_X + TARGET_RADIUS_OUTER + 85, TARGET_Y);
-        break;
       case STATE_SHOWING_RESULT:
         ctx.save();
         ctx.font = "34px Segoe UI, Arial";
@@ -538,15 +529,6 @@
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#999";
     ctx.strokeRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
-    ctx.restore();
-  }
-
-  function drawSliderLabel(text, x, y) {
-    ctx.save();
-    ctx.font = "22px Segoe UI, Arial";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#134292";
-    ctx.fillText(text, x, y);
     ctx.restore();
   }
 
