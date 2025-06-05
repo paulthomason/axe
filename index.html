@@ -73,8 +73,9 @@
   const DESIRED_AXE_SPRITE_HEIGHT = 55;
 
   // Sliders
-  // Slider track length matches target diameter so you can aim across the full face
-  const SLIDER_LENGTH = TARGET_RADIUS_OUTER * 2;
+  // Aiming sliders extend past the target width for added challenge
+  const AIM_SLIDER_LENGTH = TARGET_RADIUS_OUTER * 2 * 1.3; // 30% longer than the target diameter
+  const POWER_SLIDER_LENGTH = TARGET_RADIUS_OUTER * 2;      // unchanged for power control
   const SLIDER_THICKNESS = 20;
   const SLIDER_MARKER_W = 10, SLIDER_MARKER_H = 30;
   const SLIDER_MARKER_L = 30, SLIDER_MARKER_T = 4;
@@ -242,17 +243,17 @@
         break;
       case STATE_AIM_HORIZONTAL:
         // Slider moves back and forth automatically
-        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * sliderSpeedMultiplier * dt / SLIDER_LENGTH;
+        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * sliderSpeedMultiplier * dt / AIM_SLIDER_LENGTH;
         if (horizontalSliderPos > 1) { horizontalSliderPos = 1; horizSliderDir = -1; }
         if (horizontalSliderPos < 0) { horizontalSliderPos = 0; horizSliderDir = 1; }
         break;
       case STATE_AIM_VERTICAL:
-        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * sliderSpeedMultiplier * dt / SLIDER_LENGTH;
+        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * sliderSpeedMultiplier * dt / AIM_SLIDER_LENGTH;
         if (verticalSliderPos > 1) { verticalSliderPos = 1; vertSliderDir = -1; }
         if (verticalSliderPos < 0) { verticalSliderPos = 0; vertSliderDir = 1; }
         break;
       case STATE_AIM_POWER:
-        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * sliderSpeedMultiplier * dt / SLIDER_LENGTH;
+        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * sliderSpeedMultiplier * dt / POWER_SLIDER_LENGTH;
         if (powerSliderPos > 1) { powerSliderPos = 1; powerSliderDir = -1; }
         if (powerSliderPos < 0) { powerSliderPos = 0; powerSliderDir = 1; }
         break;
@@ -465,66 +466,66 @@
 
   function drawHorizontalSlider() {
     // Centered below target
-    const sx = TARGET_X - SLIDER_LENGTH/2;
+    const sx = TARGET_X - AIM_SLIDER_LENGTH/2;
     const sy = TARGET_Y + TARGET_RADIUS_OUTER + 40;
 
     // Slider bar
     ctx.save();
     ctx.fillStyle = "#2a85ea";
-    ctx.fillRect(sx, sy, SLIDER_LENGTH, SLIDER_THICKNESS);
+    ctx.fillRect(sx, sy, AIM_SLIDER_LENGTH, SLIDER_THICKNESS);
 
     // Marker (red vertical bar)
-    let mx = sx + horizontalSliderPos * SLIDER_LENGTH - SLIDER_MARKER_W/2;
+    let mx = sx + horizontalSliderPos * AIM_SLIDER_LENGTH - SLIDER_MARKER_W/2;
     ctx.fillStyle = "#e13b3b";
     ctx.fillRect(mx, sy - (SLIDER_MARKER_H-SLIDER_THICKNESS)/2, SLIDER_MARKER_W, SLIDER_MARKER_H);
 
     // Outline
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#134292";
-    ctx.strokeRect(sx, sy, SLIDER_LENGTH, SLIDER_THICKNESS);
+    ctx.strokeRect(sx, sy, AIM_SLIDER_LENGTH, SLIDER_THICKNESS);
     ctx.restore();
   }
 
   function drawVerticalSlider() {
     // To left of target, vertically centered
     const sx = TARGET_X - TARGET_RADIUS_OUTER - 40 - SLIDER_THICKNESS;
-    const sy = TARGET_Y - SLIDER_LENGTH/2;
+    const sy = TARGET_Y - AIM_SLIDER_LENGTH/2;
 
     ctx.save();
     ctx.fillStyle = "#2a85ea";
-    ctx.fillRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    ctx.fillRect(sx, sy, SLIDER_THICKNESS, AIM_SLIDER_LENGTH);
 
     // Marker (red horizontal line)
-    let my = sy + verticalSliderPos * SLIDER_LENGTH;
+    let my = sy + verticalSliderPos * AIM_SLIDER_LENGTH;
     ctx.fillStyle = "#e13b3b";
     ctx.fillRect(sx - (SLIDER_MARKER_L - SLIDER_THICKNESS)/2, my - SLIDER_MARKER_T/2, SLIDER_MARKER_L, SLIDER_MARKER_T);
 
     // Outline
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#134292";
-    ctx.strokeRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    ctx.strokeRect(sx, sy, SLIDER_THICKNESS, AIM_SLIDER_LENGTH);
     ctx.restore();
   }
 
   function drawPowerSlider() {
     // To right of target, vertically centered
     const sx = TARGET_X + TARGET_RADIUS_OUTER + 40;
-    const sy = TARGET_Y - SLIDER_LENGTH/2;
+    const sy = TARGET_Y - POWER_SLIDER_LENGTH/2;
 
     ctx.save();
     // Background bar
     ctx.fillStyle = "#d9d9dd";
-    ctx.fillRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    ctx.fillRect(sx, sy, SLIDER_THICKNESS, POWER_SLIDER_LENGTH);
     // Fill (green, bottom up)
-    let fy = sy + SLIDER_LENGTH * (1 - powerSliderPos);
-    let fh = SLIDER_LENGTH * powerSliderPos;
+    let fy = sy + POWER_SLIDER_LENGTH * (1 - powerSliderPos);
+    let fh = POWER_SLIDER_LENGTH * powerSliderPos;
     ctx.fillStyle = "#4caf58";
     ctx.fillRect(sx, fy, SLIDER_THICKNESS, fh);
 
     // Outline
     ctx.lineWidth = 2;
     ctx.strokeStyle = "#999";
-    ctx.strokeRect(sx, sy, SLIDER_THICKNESS, SLIDER_LENGTH);
+    ctx.strokeRect(sx, sy, SLIDER_THICKNESS, POWER_SLIDER_LENGTH);
     ctx.restore();
   }
 
