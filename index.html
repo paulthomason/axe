@@ -46,7 +46,7 @@
   <h1>Axe Throwing Challenge</h1>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <div id="instructions">
-    Use <b>SPACEBAR</b> to lock each slider and throw. Can you hit the bullseye 5 times?
+    Use <b>SPACEBAR</b> to lock each slider and throw.
   </div>
 <script>
   // ==== Constants ====
@@ -624,7 +624,7 @@
       }
     }
     if (resultPoints > 0) {
-      sliderSpeedMultiplier *= 1.1;
+      sliderSpeedMultiplier *= 1.2;
     }
     score += resultPoints;
     throwsLeft--;
