@@ -159,9 +159,12 @@
     window.addEventListener('keydown', handleInput);
     const tapBtn = document.getElementById('tapButton');
     if (tapBtn) {
-      tapBtn.addEventListener('click', function() {
+      function triggerTap(e) {
+        e.preventDefault(); // prevent 300ms click delay and synthetic click
         handleInput({ code: 'Space', preventDefault: function(){} });
-      });
+      }
+      tapBtn.addEventListener('touchstart', triggerTap);
+      tapBtn.addEventListener('click', triggerTap);
     }
     requestAnimationFrame(gameLoop);
   };
