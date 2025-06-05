@@ -37,6 +37,12 @@
       font-size: 1.08rem;
       letter-spacing: .5px;
     }
+    #tapButton {
+      margin: 20px auto;
+      padding: 10px 18px;
+      font-size: 1.1rem;
+      display: block;
+    }
     @media (max-width: 850px) {
       #gameCanvas { width: 97vw; height: 72vw; max-width:800px; max-height:600px; }
     }
@@ -46,8 +52,9 @@
   <h1>Axe Throwing Challenge</h1>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <div id="instructions">
-    Use <b>SPACEBAR</b> to lock each slider and throw.
+    Use <b>SPACEBAR</b> or tap the button below to lock each slider and throw.
   </div>
+  <button id="tapButton">Tap to Stop</button>
 <script>
   // ==== Constants ====
   const CANVAS_WIDTH = 800, CANVAS_HEIGHT = 600;
@@ -150,6 +157,12 @@
     loadImages();
 
     window.addEventListener('keydown', handleInput);
+    const tapBtn = document.getElementById('tapButton');
+    if (tapBtn) {
+      tapBtn.addEventListener('click', function() {
+        handleInput({ code: 'Space', preventDefault: function(){} });
+      });
+    }
     requestAnimationFrame(gameLoop);
   };
 
