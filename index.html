@@ -73,7 +73,8 @@
   const DESIRED_AXE_SPRITE_HEIGHT = 55;
 
   // Sliders
-  const SLIDER_LENGTH = 150;
+  // Slider track length matches target diameter so you can aim across the full face
+  const SLIDER_LENGTH = TARGET_RADIUS_OUTER * 2;
   const SLIDER_THICKNESS = 20;
   const SLIDER_MARKER_W = 10, SLIDER_MARKER_H = 30;
   const SLIDER_MARKER_L = 30, SLIDER_MARKER_T = 4;
@@ -540,13 +541,13 @@
         case STATE_AIM_HORIZONTAL:
           // Lock horizontal offset
           locked_horizontal_offset =
-            (horizontalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER * 1.2;
+            (horizontalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER;
           state = STATE_AIM_VERTICAL;
           break;
         case STATE_AIM_VERTICAL:
           // Lock vertical offset
           locked_vertical_offset =
-            (verticalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER * 1.2;
+            (verticalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER;
           state = STATE_AIM_POWER;
           break;
         case STATE_AIM_POWER:
