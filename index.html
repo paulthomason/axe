@@ -123,6 +123,8 @@
   let horizSliderDir = 1;
   let vertSliderDir = 1;
   let powerSliderDir = 1;
+  // Multiplier for slider speeds that increases when the player scores
+  let sliderSpeedMultiplier = 1;
   let locked_horizontal_offset = 0;
   let locked_vertical_offset = 0;
   let locked_power_normalized = 0;
@@ -225,17 +227,17 @@
         break;
       case STATE_AIM_HORIZONTAL:
         // Slider moves back and forth automatically
-        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * dt / SLIDER_LENGTH;
+        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * sliderSpeedMultiplier * dt / SLIDER_LENGTH;
         if (horizontalSliderPos > 1) { horizontalSliderPos = 1; horizSliderDir = -1; }
         if (horizontalSliderPos < 0) { horizontalSliderPos = 0; horizSliderDir = 1; }
         break;
       case STATE_AIM_VERTICAL:
-        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * dt / SLIDER_LENGTH;
+        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * sliderSpeedMultiplier * dt / SLIDER_LENGTH;
         if (verticalSliderPos > 1) { verticalSliderPos = 1; vertSliderDir = -1; }
         if (verticalSliderPos < 0) { verticalSliderPos = 0; vertSliderDir = 1; }
         break;
       case STATE_AIM_POWER:
-        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * dt / SLIDER_LENGTH;
+        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * sliderSpeedMultiplier * dt / SLIDER_LENGTH;
         if (powerSliderPos > 1) { powerSliderPos = 1; powerSliderDir = -1; }
         if (powerSliderPos < 0) { powerSliderPos = 0; powerSliderDir = 1; }
         break;
@@ -621,6 +623,9 @@
         resultPoints = 0;
       }
     }
+    if (resultPoints > 0) {
+      sliderSpeedMultiplier *= 1.1;
+    }
     score += resultPoints;
     throwsLeft--;
 
@@ -635,6 +640,7 @@
     throwsLeft = START_THROWS;
     resultMsg = '';
     resultPoints = 0;
+    sliderSpeedMultiplier = 1;
     resetForNextThrow();
   }
   function resetForNextThrow() {
