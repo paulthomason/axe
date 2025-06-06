@@ -432,7 +432,8 @@
       case STATE_THROWING:
         if (multiAxes.length > 0) {
           let allDone = true;
-          multiAxes.forEach(ax => {
+          for (let i = 0; i < multiAxes.length; i++) {
+            const ax = multiAxes[i];
             if (ax.progress < 1) {
               ax.progress += dt * bulletTimeFactor / axeThrowDuration;
               if (ax.progress >= 1) {
@@ -454,18 +455,17 @@
               }
             }
             ax.angle = AXE_ROTATION_SPEED * axeThrowDuration * (ax.progress - 1);
-          });
-            if (allDone) {
-              const total = multiAxes.reduce((s,a)=>s+a.points,0);
-              bulletTimeActive = false;
-              bulletTimeFactor = 1;
-              resultPoints = total;
-              resultMsg = total > 0 ? "Barrage!" : "Missed!";
-              lastThrowMissed = total === 0;
-              consecutiveBullseyes = 0;
-              showResultTimer = RESULT_SHOW_TIME;
-              state = STATE_SHOWING_RESULT;
-            }
+          }
+          if (allDone) {
+            const total = multiAxes.reduce((s, a) => s + a.points, 0);
+            bulletTimeActive = false;
+            bulletTimeFactor = 1;
+            resultPoints = total;
+            resultMsg = total > 0 ? "Barrage!" : "Missed!";
+            lastThrowMissed = total === 0;
+            consecutiveBullseyes = 0;
+            showResultTimer = RESULT_SHOW_TIME;
+            state = STATE_SHOWING_RESULT;
           }
         } else if (axeIsFlying) {
           axeThrowProgress += dt * bulletTimeFactor / axeThrowDuration;
