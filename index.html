@@ -37,6 +37,17 @@
       font-size: 1.08rem;
       letter-spacing: .5px;
     }
+    #tapButton {
+      margin-top: 20px;
+      padding: 16px 32px;
+      font-size: 1.6rem;
+      background: #4caf58;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
     @media (max-width: 850px) {
       #gameCanvas { width: 97vw; height: 72vw; max-width:800px; max-height:600px; }
     }
@@ -45,8 +56,9 @@
 <body>
   <h1>Axe Throwing Challenge</h1>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <button id="tapButton">Tap</button>
   <div id="instructions">
-    Use <b>SPACEBAR</b> or tap anywhere on the screen to lock each slider and throw.
+    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw.
   </div>
 <script>
   // ==== Constants ====
@@ -145,17 +157,31 @@
   window.onload = function() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
+    const tapButtonEl = document.getElementById('tapButton');
+    const touchInstructionEl = document.getElementById('touchInstruction');
 
-    // Start loading assets
-    loadImages();
+    const isTouchOnly = navigator.maxTouchPoints > 0 && !window.matchMedia('(any-hover: hover)').matches;
 
     window.addEventListener('keydown', handleInput);
+
     function triggerTap(e) {
       e.preventDefault(); // prevent 300ms click delay and synthetic click
       handleInput({ code: 'Space', preventDefault: function(){} });
     }
-    window.addEventListener('touchstart', triggerTap);
-    window.addEventListener('click', triggerTap);
+
+    if (isTouchOnly) {
+      tapButtonEl.style.display = 'block';
+      tapButtonEl.addEventListener('touchstart', triggerTap);
+      tapButtonEl.addEventListener('click', triggerTap);
+      if (touchInstructionEl) touchInstructionEl.textContent = 'tap the button below';
+    } else {
+      window.addEventListener('touchstart', triggerTap);
+      window.addEventListener('click', triggerTap);
+      if (touchInstructionEl) touchInstructionEl.textContent = 'click anywhere on the screen';
+    }
+
+    // Start loading assets
+    loadImages();
     requestAnimationFrame(gameLoop);
   };
 
