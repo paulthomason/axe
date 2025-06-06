@@ -107,8 +107,9 @@
   const STATE_GAME_OVER         = 6;
 
   // Power
+  // POWER_IDEAL controls how the selected power affects vertical accuracy.
+  // Scoring is always based on where the axe lands regardless of power.
   const POWER_IDEAL = 0.65;
-  const POWER_MIN_STICK = 0.2, POWER_MAX_STICK = 0.95;
 
   // Misc
   const RESULT_SHOW_TIME = 2000; // ms
@@ -597,36 +598,29 @@
   }
 
   function evaluateThrow() {
-    // Did we stick the axe?
-    if (locked_power_normalized < POWER_MIN_STICK || locked_power_normalized > POWER_MAX_STICK) {
-      // Bad power
-      resultMsg = "Bad Power! No Stick!";
-      resultPoints = 0;
-    } else {
-      // Determine where the precise blade tip lands
-      const rotX = axeTipOffsetX * Math.cos(axeAngle) -
-                   axeTipOffsetY * Math.sin(axeAngle);
-      const rotY = axeTipOffsetX * Math.sin(axeAngle) +
-                   axeTipOffsetY * Math.cos(axeAngle);
-      const tipX = axeHitX + rotX;
-      const tipY = axeHitY + rotY;
-      let dx = tipX - TARGET_X;
-      let dy = tipY - TARGET_Y;
-      let dist = Math.sqrt(dx*dx + dy*dy);
+    // Determine where the precise blade tip lands and score based solely on that
+    const rotX = axeTipOffsetX * Math.cos(axeAngle) -
+                 axeTipOffsetY * Math.sin(axeAngle);
+    const rotY = axeTipOffsetX * Math.sin(axeAngle) +
+                 axeTipOffsetY * Math.cos(axeAngle);
+    const tipX = axeHitX + rotX;
+    const tipY = axeHitY + rotY;
+    let dx = tipX - TARGET_X;
+    let dy = tipY - TARGET_Y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
 
-      if (dist <= TARGET_RADIUS_INNER) {
-        resultMsg = "Bullseye!";
-        resultPoints = 10;
-      } else if (dist <= TARGET_RADIUS_MIDDLE) {
-        resultMsg = "Great Shot!";
-        resultPoints = 7;
-      } else if (dist <= TARGET_RADIUS_OUTER) {
-        resultMsg = "On Target!";
-        resultPoints = 5;
-      } else {
-        resultMsg = "Missed!";
-        resultPoints = 0;
-      }
+    if (dist <= TARGET_RADIUS_INNER) {
+      resultMsg = "Bullseye!";
+      resultPoints = 10;
+    } else if (dist <= TARGET_RADIUS_MIDDLE) {
+      resultMsg = "Great Shot!";
+      resultPoints = 7;
+    } else if (dist <= TARGET_RADIUS_OUTER) {
+      resultMsg = "On Target!";
+      resultPoints = 5;
+    } else {
+      resultMsg = "Missed!";
+      resultPoints = 0;
     }
     if (resultPoints > 0) {
       sliderSpeedMultiplier *= 1.2;
