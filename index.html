@@ -222,6 +222,7 @@
   let bulletTimeAvailable = true;
   let bulletTimeActive = false;
   let bulletTimeFactor = 1;
+  let gameStarted = false;
   let locked_horizontal_offset = 0;
   let locked_vertical_offset = 0;
   let locked_power_normalized = 0;
@@ -255,6 +256,8 @@
       if (nameInputEl.value.trim()) targetName = nameInputEl.value.trim();
       nameOverlayEl.style.display = 'none';
       nameInputEl.removeEventListener('keydown', nameKeyHandler);
+      gameStarted = true;
+      if (bulletButtonEl) bulletButtonEl.style.display = 'block';
     }
     function nameKeyHandler(e) {
       if (e.key === 'Enter') applyName();
@@ -280,6 +283,7 @@
 
     function triggerTap(e) {
       e.preventDefault(); // prevent 300ms click delay and synthetic click
+      if (!gameStarted) return;
       handleInput({ code: 'Space', preventDefault: function(){} });
     }
 
@@ -295,10 +299,10 @@
     }
 
     if (bulletTimeAvailable) {
-      bulletButtonEl.style.display = 'block';
       function bulletBtnHandler(e) {
         e.preventDefault();
         e.stopPropagation();
+        if (!gameStarted) return;
         activateBulletTime();
       }
       bulletButtonEl.addEventListener('click', bulletBtnHandler);
@@ -694,6 +698,7 @@
 
   // ==== Input ====
   function handleInput(e) {
+    if (!gameStarted) return;
     if (e.code === 'Space') {
       e.preventDefault();
       switch (state) {
