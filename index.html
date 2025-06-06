@@ -281,7 +281,6 @@
   let lockLetters = [];
   let lockIndex = 0;
   let lockTimer = 0;
-  let lockPrevState = STATE_AIM_HORIZONTAL;
   let lockQueue = 0;
   let bulletTimeActive = false;
   let bulletTimeFactor = 1;
@@ -926,7 +925,6 @@
     }
     lockIndex = 0;
     lockTimer = 1500;
-    lockPrevState = state;
     state = STATE_LOCK_CHALLENGE;
     if (lockPromptEl) {
       lockPromptEl.textContent = lockLetters[lockIndex];
@@ -954,7 +952,7 @@
     window.removeEventListener('keydown', lockKeyHandler);
     if (lockPromptEl) lockPromptEl.style.display = 'none';
     lockInActive = false;
-    state = lockPrevState;
+    state = STATE_AIM_HORIZONTAL;
   }
 
   function succeedLockChallenge() {
@@ -962,7 +960,7 @@
     if (lockPromptEl) lockPromptEl.style.display = 'none';
     lockInActive = false;
     lockQueue = 3;
-    state = lockPrevState;
+    state = STATE_AIM_HORIZONTAL;
     resetForNextThrow();
     startBullseyeThrow();
   }
