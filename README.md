@@ -7,5 +7,8 @@ This repository hosts a small HTML5 canvas game. Press **SPACEBAR** or tap the o
 - `axe.png` is the axe sprite used by the game.
 
 ## Usage
-Open `index.html` in a modern web browser. No build or installation steps are required.
+Open `index.html` in a modern web browser. The layout automatically adapts to different screen sizes so you can play on phones, tablets or desktops. No build or installation steps are required.
+
+## Running tests
+Install dependencies with `npm install` then run `npm test`. All tests should report "All tests passed".
 
