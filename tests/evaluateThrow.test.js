@@ -74,6 +74,18 @@ function runMissTest() {
   if (w.eval('resultMsg') !== 'Missed!') throw new Error('Expected Missed message');
 }
 
+function runMultiThrowGameOverTest() {
+  resetState();
+  const origRand = w.Math.random;
+  w.Math.random = () => 1; // force misses
+  w.eval('state = STATE_AIM_HORIZONTAL');
+  w.performMultiThrow();
+  w.Math.random = origRand;
+  if (w.eval('state') !== w.eval('STATE_GAME_OVER')) throw new Error('Multi throw should end game when all miss');
+  if (w.eval('score') !== 0) throw new Error('Score should remain 0 when all miss');
+}
+
 runBullseyeTest();
 runMissTest();
+runMultiThrowGameOverTest();
 console.log('All tests passed');
