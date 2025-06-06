@@ -743,5 +743,13 @@
     lastThrowMissed = false;
   }
 </script>
+<script type="module">
+  import vader from 'https://cdn.skypack.dev/vader-sentiment';
+  const { SentimentIntensityAnalyzer } = vader;
+  const scores = SentimentIntensityAnalyzer.polarity_scores(
+    'VADER works in the browser!'
+  );
+  console.log(scores);
+</script>
 </body>
 </html>
