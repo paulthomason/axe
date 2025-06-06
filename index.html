@@ -242,6 +242,9 @@
   let locked_vertical_offset = 0;
   let locked_power_normalized = 0;
 
+  // Multi-throw tracking
+  let multiAxes = [];
+
   // Throw
   let axeIsFlying = false;
   let axeThrowProgress = 0; // 0...1
@@ -424,7 +427,42 @@
         if (powerSliderPos < 0) { powerSliderPos = 0; powerSliderDir = 1; }
         break;
       case STATE_THROWING:
-        if (axeIsFlying) {
+        if (multiAxes.length > 0) {
+          let allDone = true;
+          multiAxes.forEach(ax => {
+            if (ax.progress < 1) {
+              ax.progress += dt * bulletTimeFactor / axeThrowDuration;
+              if (ax.progress >= 1) {
+                ax.progress = 1;
+                const res = evaluateHit(ax.hitX, ax.hitY, ax.angle);
+                ax.points = res.points;
+                ax.scored = true;
+                score += res.points;
+                if (res.points > 0) {
+                  sliderSpeedMultiplier *= 1.2;
+                  lastThrowMissed = false;
+                }
+                if (score > highScore) {
+                  highScore = score;
+                  setCookie('highScore', highScore, 365);
+                }
+              } else {
+                allDone = false;
+              }
+            }
+            ax.angle = AXE_ROTATION_SPEED * axeThrowDuration * (ax.progress - 1);
+          });
+          if (allDone) {
+            const total = multiAxes.reduce((s,a)=>s+a.points,0);
+            bulletTimeActive = false;
+            bulletTimeFactor = 1;
+            resultPoints = total;
+            resultMsg = total > 0 ? 'Barrage!' : 'Missed!';
+            if (total === 0) lastThrowMissed = true;
+            showResultTimer = RESULT_SHOW_TIME;
+            state = total > 0 ? STATE_SHOWING_RESULT : STATE_GAME_OVER;
+          }
+        } else if (axeIsFlying) {
           axeThrowProgress += dt * bulletTimeFactor / axeThrowDuration;
           if (axeThrowProgress >= 1.0) {
             axeThrowProgress = 1.0;
@@ -478,8 +516,7 @@
       drawAxeSprite(AXE_START_X, AXE_START_Y, 0);
     }
     else if (state === STATE_THROWING || state === STATE_SHOWING_RESULT || state === STATE_GAME_OVER) {
-      // Animate or show stuck axe
-      drawFlyingAxe();
+      drawFlyingAxes();
     }
 
     // Overlay messages
@@ -634,6 +671,22 @@
     drawAxeSprite(x, y, axeAngle);
   }
 
+  function drawFlyingAxes() {
+    if (multiAxes.length === 0) {
+      drawFlyingAxe();
+      return;
+    }
+    multiAxes.forEach(ax => {
+      let t = ax.progress;
+      let sx = AXE_START_X, sy = AXE_START_Y;
+      let ex = ax.hitX, ey = ax.hitY;
+      let arc = 120 + 20 * Math.abs(ax.power - POWER_IDEAL);
+      let x = sx + (ex - sx) * t;
+      let y = sy + (ey - sy) * t - arc * Math.sin(Math.PI * t);
+      drawAxeSprite(x, y, ax.angle);
+    });
+  }
+
   function drawHorizontalSlider() {
     // Centered below target
     const sx = TARGET_X - AIM_SLIDER_LENGTH/2;
@@ -732,30 +785,37 @@
   function performMultiThrow() {
     if (!multiThrowAvailable) return;
     multiThrowAvailable = false;
-    let anyScored = false;
+    multiAxes = [];
     for (let i = 0; i < 5; i++) {
-      locked_horizontal_offset = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
-      locked_vertical_offset = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
-      locked_power_normalized = Math.random();
+      const hOff = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
+      const vOff = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
+      const power = Math.random();
 
-      axeAngle = -AXE_ROTATION_SPEED * axeThrowDuration;
-      let power_effect_factor = (POWER_IDEAL - locked_power_normalized) * (TARGET_RADIUS_OUTERMOST * 2.0);
-      axeTargetX = TARGET_X + locked_horizontal_offset;
-      axeTargetY = TARGET_Y + locked_vertical_offset + power_effect_factor;
-      let power_accuracy_modifier = 1.0 - Math.abs(locked_power_normalized - POWER_IDEAL) / POWER_IDEAL;
-      power_accuracy_modifier = Math.max(0, power_accuracy_modifier);
-      let max_rand = 18 * (1.0 - power_accuracy_modifier ** 2);
-      throw_random_dx = (Math.random() - 0.5) * 2 * max_rand;
-      throw_random_dy = (Math.random() - 0.5) * 2 * max_rand;
-      axeHitX = axeTargetX + throw_random_dx;
-      axeHitY = axeTargetY + throw_random_dy;
-      evaluateThrow();
-      if (resultPoints > 0) anyScored = true;
+      const angle = -AXE_ROTATION_SPEED * axeThrowDuration;
+      const powerEffect = (POWER_IDEAL - power) * (TARGET_RADIUS_OUTERMOST * 2.0);
+      const targetX = TARGET_X + hOff;
+      const targetY = TARGET_Y + vOff + powerEffect;
+      let powerAcc = 1.0 - Math.abs(power - POWER_IDEAL) / POWER_IDEAL;
+      powerAcc = Math.max(0, powerAcc);
+      const maxRand = 18 * (1.0 - powerAcc ** 2);
+      const randX = (Math.random() - 0.5) * 2 * maxRand;
+      const randY = (Math.random() - 0.5) * 2 * maxRand;
+      const hitX = targetX + randX;
+      const hitY = targetY + randY;
+
+      multiAxes.push({
+        power,
+        targetX,
+        targetY,
+        hitX,
+        hitY,
+        angle,
+        progress: 0,
+        scored: false,
+        points: 0,
+      });
     }
-    if (!anyScored) {
-      lastThrowMissed = true;
-      state = STATE_GAME_OVER;
-    }
+    state = STATE_THROWING;
   }
 
   // ==== Input ====
@@ -822,34 +882,38 @@
     axeHitY = axeTargetY + throw_random_dy;
   }
 
-  function evaluateThrow() {
-    // Determine where the precise blade tip lands and score based solely on that
-    const rotX = axeTipOffsetX * Math.cos(axeAngle) -
-                 axeTipOffsetY * Math.sin(axeAngle);
-    const rotY = axeTipOffsetX * Math.sin(axeAngle) +
-                 axeTipOffsetY * Math.cos(axeAngle);
-    const tipX = axeHitX + rotX;
-    const tipY = axeHitY + rotY;
+  function evaluateHit(hitX, hitY, angle) {
+    const rotX = axeTipOffsetX * Math.cos(angle) -
+                 axeTipOffsetY * Math.sin(angle);
+    const rotY = axeTipOffsetX * Math.sin(angle) +
+                 axeTipOffsetY * Math.cos(angle);
+    const tipX = hitX + rotX;
+    const tipY = hitY + rotY;
     let dx = tipX - TARGET_X;
     let dy = tipY - TARGET_Y;
     let dist = Math.sqrt(dx*dx + dy*dy);
-
+    let msg = "Missed!";
+    let points = 0;
     if (dist <= TARGET_RADIUS_INNER) {
-      resultMsg = "Bullseye!";
-      resultPoints = 10;
+      msg = "Bullseye!";
+      points = 10;
     } else if (dist <= TARGET_RADIUS_MIDDLE) {
-      resultMsg = "Great Shot!";
-      resultPoints = 7;
+      msg = "Great Shot!";
+      points = 7;
     } else if (dist <= TARGET_RADIUS_OUTER) {
-      resultMsg = "On Target!";
-      resultPoints = 5;
+      msg = "On Target!";
+      points = 5;
     } else if (dist <= TARGET_RADIUS_OUTERMOST) {
-      resultMsg = "Close!";
-      resultPoints = 3;
-    } else {
-      resultMsg = "Missed!";
-      resultPoints = 0;
+      msg = "Close!";
+      points = 3;
     }
+    return {msg, points};
+  }
+
+  function evaluateThrow() {
+    const {msg, points} = evaluateHit(axeHitX, axeHitY, axeAngle);
+    resultMsg = msg;
+    resultPoints = points;
     if (resultPoints > 0) {
       sliderSpeedMultiplier *= 1.2;
       lastThrowMissed = false;
@@ -901,6 +965,7 @@
     axeHitX = TARGET_X;
     axeHitY = TARGET_Y;
     lastThrowMissed = false;
+    multiAxes = [];
   }
 
   function getCookie(name) {
