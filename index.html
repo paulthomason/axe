@@ -48,6 +48,18 @@
       display: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
+    #bulletButton {
+      margin-top: 12px;
+      padding: 14px 28px;
+      font-size: 1.4rem;
+      background: #000;
+      color: #0f0;
+      font-family: 'Courier New', Courier, monospace;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
     @media (max-width: 850px) {
       #gameCanvas { width: 97vw; height: 72vw; max-width:800px; max-height:600px; }
     }
@@ -57,8 +69,9 @@
   <h1>Axe Throwing Challenge</h1>
   <canvas id="gameCanvas" width="800" height="600"></canvas>
   <button id="tapButton">Tap</button>
+  <button id="bulletButton">BULLET TIME</button>
   <div id="instructions">
-    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw.
+    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders.
   </div>
 <script>
   // ==== Constants ====
@@ -115,7 +128,7 @@
   const RESULT_SHOW_TIME = 2000; // ms
 
   // ==== Globals ====
-  let canvas, ctx;
+  let canvas, ctx, bulletButtonEl;
 
   let state = STATE_LOADING;
 
@@ -140,6 +153,9 @@
   let powerSliderDir = 1;
   // Multiplier for slider speeds that increases when the player scores
   let sliderSpeedMultiplier = 1;
+  let bulletTimeAvailable = true;
+  let bulletTimeActive = false;
+  let bulletTimeFactor = 1;
   let locked_horizontal_offset = 0;
   let locked_vertical_offset = 0;
   let locked_power_normalized = 0;
@@ -166,6 +182,7 @@
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     const tapButtonEl = document.getElementById('tapButton');
+    bulletButtonEl = document.getElementById('bulletButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
 
     const isTouchOnly = navigator.maxTouchPoints > 0 && !window.matchMedia('(any-hover: hover)').matches;
@@ -186,6 +203,11 @@
       window.addEventListener('touchstart', triggerTap);
       window.addEventListener('click', triggerTap);
       if (touchInstructionEl) touchInstructionEl.textContent = 'click anywhere on the screen';
+    }
+
+    if (bulletTimeAvailable) {
+      bulletButtonEl.style.display = 'block';
+      bulletButtonEl.addEventListener('click', activateBulletTime);
     }
 
     // Start loading assets
@@ -257,17 +279,17 @@
         break;
       case STATE_AIM_HORIZONTAL:
         // Slider moves back and forth automatically
-        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * sliderSpeedMultiplier * dt / AIM_SLIDER_LENGTH;
+        horizontalSliderPos += horizSliderDir * HORIZ_SLIDER_SPEED * sliderSpeedMultiplier * bulletTimeFactor * dt / AIM_SLIDER_LENGTH;
         if (horizontalSliderPos > 1) { horizontalSliderPos = 1; horizSliderDir = -1; }
         if (horizontalSliderPos < 0) { horizontalSliderPos = 0; horizSliderDir = 1; }
         break;
       case STATE_AIM_VERTICAL:
-        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * sliderSpeedMultiplier * dt / AIM_SLIDER_LENGTH;
+        verticalSliderPos += vertSliderDir * VERT_SLIDER_SPEED * sliderSpeedMultiplier * bulletTimeFactor * dt / AIM_SLIDER_LENGTH;
         if (verticalSliderPos > 1) { verticalSliderPos = 1; vertSliderDir = -1; }
         if (verticalSliderPos < 0) { verticalSliderPos = 0; vertSliderDir = 1; }
         break;
       case STATE_AIM_POWER:
-        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * sliderSpeedMultiplier * dt / POWER_SLIDER_LENGTH;
+        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * sliderSpeedMultiplier * bulletTimeFactor * dt / POWER_SLIDER_LENGTH;
         if (powerSliderPos > 1) { powerSliderPos = 1; powerSliderDir = -1; }
         if (powerSliderPos < 0) { powerSliderPos = 0; powerSliderDir = 1; }
         break;
@@ -556,6 +578,14 @@
     ctx.restore();
   }
 
+  function activateBulletTime() {
+    if (!bulletTimeAvailable || bulletTimeActive) return;
+    bulletTimeAvailable = false;
+    bulletTimeActive = true;
+    bulletTimeFactor = 0.2;
+    if (bulletButtonEl) bulletButtonEl.style.display = 'none';
+  }
+
   // ==== Input ====
   function handleInput(e) {
     if (e.code === 'Space') {
@@ -596,6 +626,8 @@
 
   // ==== Throwing Logic ====
   function startThrow() {
+    bulletTimeActive = false;
+    bulletTimeFactor = 1;
     state = STATE_THROWING;
     axeIsFlying = true;
     axeThrowProgress = 0;
@@ -663,6 +695,10 @@
     resultMsg = '';
     resultPoints = 0;
     sliderSpeedMultiplier = 1;
+    bulletTimeAvailable = true;
+    bulletTimeActive = false;
+    bulletTimeFactor = 1;
+    if (bulletButtonEl) bulletButtonEl.style.display = 'block';
     lastThrowMissed = false;
     resetForNextThrow();
   }
