@@ -521,11 +521,26 @@
     // Background bar
     ctx.fillStyle = "#d9d9dd";
     ctx.fillRect(sx, sy, SLIDER_THICKNESS, POWER_SLIDER_LENGTH);
-    // Fill (green, bottom up)
-    let fy = sy + POWER_SLIDER_LENGTH * (1 - powerSliderPos);
-    let fh = POWER_SLIDER_LENGTH * powerSliderPos;
-    ctx.fillStyle = "#4caf58";
-    ctx.fillRect(sx, fy, SLIDER_THICKNESS, fh);
+
+    // Zones for color coding
+    const zones = [
+      { start: 0.0, end: 0.35, color: "#e13b3b" },  // red
+      { start: 0.35, end: 0.5, color: "#ffd93d" }, // yellow
+      { start: 0.5, end: 0.8, color: "#4caf58" },  // green
+      { start: 0.8, end: 0.95, color: "#ffd93d" }, // yellow
+      { start: 0.95, end: 1.0, color: "#e13b3b" }  // red
+    ];
+
+    // Draw filled portion with appropriate zone colors
+    zones.forEach(zone => {
+      if (powerSliderPos <= zone.start) return;
+      const fillFrac = Math.min(powerSliderPos, zone.end) - zone.start;
+      if (fillFrac <= 0) return;
+      const segHeight = POWER_SLIDER_LENGTH * fillFrac;
+      const segBottom = sy + POWER_SLIDER_LENGTH * (1 - zone.start);
+      ctx.fillStyle = zone.color;
+      ctx.fillRect(sx, segBottom - segHeight, SLIDER_THICKNESS, segHeight);
+    });
 
     // Outline
     ctx.lineWidth = 2;
