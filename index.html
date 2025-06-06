@@ -65,7 +65,6 @@
   const TARGET_RADIUS_OUTER = 100;
   const TARGET_RADIUS_MIDDLE = 65;
   const TARGET_RADIUS_INNER = 30;
-  const BULLSEYE_IMAGE_DIAMETER = 60;
 
   // Axe
   const AXE_START_X = CANVAS_WIDTH / 2;
@@ -112,10 +111,9 @@
 
   // Asset management
   let axeImageRaw = null, axeImageScaled = null, axeImageOk = false;
-  let gorgImageRaw = null, gorgImageResized = null, gorgImageOk = false;
-  let assetsToLoad = 2;
+  let assetsToLoad = 1;
   let assetsLoaded = 0;
-  let assetLoadErrorAxe = false, assetLoadErrorGorg = false;
+  let assetLoadErrorAxe = false;
 
   // Game
   let score = 0;
@@ -191,26 +189,6 @@
     };
     axeImageRaw.src = "axe.png";
 
-    // Load gorg.png
-    gorgImageRaw = new Image();
-    gorgImageRaw.onload = () => {
-      // Resize to fit BULLSEYE_IMAGE_DIAMETER, aspect correct
-      const scale = BULLSEYE_IMAGE_DIAMETER / Math.max(gorgImageRaw.width, gorgImageRaw.height);
-      const newW = Math.round(gorgImageRaw.width * scale);
-      const newH = Math.round(gorgImageRaw.height * scale);
-      gorgImageResized = document.createElement('canvas');
-      gorgImageResized.width = newW;
-      gorgImageResized.height = newH;
-      const gctx = gorgImageResized.getContext('2d');
-      gctx.drawImage(gorgImageRaw, 0, 0, newW, newH);
-      gorgImageOk = true;
-      assetLoaded();
-    };
-    gorgImageRaw.onerror = () => {
-      assetLoadErrorGorg = true;
-      assetLoaded();
-    };
-    gorgImageRaw.src = "gorg.png";
   }
 
   function assetLoaded() {
@@ -375,24 +353,8 @@
     // Inner ring
     ctx.beginPath();
     ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_INNER, 0, Math.PI*2);
-    ctx.closePath();
-    ctx.save();
-    ctx.clip();
-
-    // Draw bullseye image or fallback
-    if (gorgImageOk && gorgImageResized) {
-      ctx.drawImage(
-        gorgImageResized,
-        TARGET_X - gorgImageResized.width/2,
-        TARGET_Y - gorgImageResized.height/2
-      );
-    } else {
-      ctx.fillStyle = "#e53636";
-      ctx.beginPath();
-      ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_INNER, 0, Math.PI*2);
-      ctx.fill();
-    }
-    ctx.restore();
+    ctx.fillStyle = "#e53636";
+    ctx.fill();
 
     ctx.lineWidth = 2.5;
     ctx.strokeStyle = "#000";
@@ -409,6 +371,13 @@
     ctx.moveTo(TARGET_X, TARGET_Y - TARGET_RADIUS_OUTER - 15);
     ctx.lineTo(TARGET_X, TARGET_Y + TARGET_RADIUS_OUTER + 15);
     ctx.stroke();
+
+    // Center text
+    ctx.font = "bold 24px Segoe UI, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#fff";
+    ctx.fillText("Pablo", TARGET_X, TARGET_Y);
 
     // Score numbers
     ctx.font = "bold 20px Segoe UI, Arial";
