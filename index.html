@@ -84,6 +84,7 @@
   // Target (bullseye)
   let TARGET_X = CANVAS_WIDTH / 2;
   let TARGET_Y = CANVAS_HEIGHT / 3;
+  const TARGET_RADIUS_OUTERMOST = 135;
   const TARGET_RADIUS_OUTER = 100;
   const TARGET_RADIUS_MIDDLE = 65;
   const TARGET_RADIUS_INNER = 30;
@@ -108,8 +109,8 @@
 
   // Sliders
   // Aiming sliders extend past the target width for added challenge
-  const AIM_SLIDER_LENGTH = TARGET_RADIUS_OUTER * 2 * 1.3; // 30% longer than the target diameter
-  const POWER_SLIDER_LENGTH = TARGET_RADIUS_OUTER * 2;      // unchanged for power control
+  const AIM_SLIDER_LENGTH = TARGET_RADIUS_OUTERMOST * 2 * 1.3; // 30% longer than the target diameter
+  const POWER_SLIDER_LENGTH = TARGET_RADIUS_OUTERMOST * 2;      // unchanged for power control
   const SLIDER_THICKNESS = 20;
   const SLIDER_MARKER_W = 10, SLIDER_MARKER_H = 30;
   const SLIDER_MARKER_L = 30, SLIDER_MARKER_T = 4;
@@ -413,8 +414,17 @@
   // ==== Drawing Functions ====
 
   function drawTarget() {
-    // Outer ring
+    // Outermost ring
     ctx.save();
+    ctx.beginPath();
+    ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_OUTERMOST, 0, Math.PI*2);
+    ctx.fillStyle = WOOD_BROWN;
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = DARK_WOOD_BROWN;
+    ctx.stroke();
+
+    // Outer ring
     ctx.beginPath();
     ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_OUTER, 0, Math.PI*2);
     ctx.fillStyle = WOOD_BROWN;
@@ -447,10 +457,10 @@
     ctx.lineWidth = 1.8;
     ctx.strokeStyle = "#222";
     ctx.beginPath();
-    ctx.moveTo(TARGET_X - TARGET_RADIUS_OUTER - 15, TARGET_Y);
-    ctx.lineTo(TARGET_X + TARGET_RADIUS_OUTER + 15, TARGET_Y);
-    ctx.moveTo(TARGET_X, TARGET_Y - TARGET_RADIUS_OUTER - 15);
-    ctx.lineTo(TARGET_X, TARGET_Y + TARGET_RADIUS_OUTER + 15);
+    ctx.moveTo(TARGET_X - TARGET_RADIUS_OUTERMOST - 15, TARGET_Y);
+    ctx.lineTo(TARGET_X + TARGET_RADIUS_OUTERMOST + 15, TARGET_Y);
+    ctx.moveTo(TARGET_X, TARGET_Y - TARGET_RADIUS_OUTERMOST - 15);
+    ctx.lineTo(TARGET_X, TARGET_Y + TARGET_RADIUS_OUTERMOST + 15);
     ctx.stroke();
 
     // Center text
@@ -465,6 +475,7 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#000";
+    ctx.fillText("3", TARGET_X, TARGET_Y - (TARGET_RADIUS_OUTERMOST + TARGET_RADIUS_OUTER)/2);
     ctx.fillText("5", TARGET_X, TARGET_Y - (TARGET_RADIUS_OUTER + TARGET_RADIUS_MIDDLE)/2);
     ctx.fillText("7", TARGET_X, TARGET_Y - (TARGET_RADIUS_MIDDLE + TARGET_RADIUS_INNER)/2);
     ctx.restore();
@@ -517,7 +528,7 @@
   function drawHorizontalSlider() {
     // Centered below target
     const sx = TARGET_X - AIM_SLIDER_LENGTH/2;
-    const sy = TARGET_Y + TARGET_RADIUS_OUTER + 40;
+    const sy = TARGET_Y + TARGET_RADIUS_OUTERMOST + 40;
 
     // Slider bar
     ctx.save();
@@ -538,7 +549,7 @@
 
   function drawVerticalSlider() {
     // To left of target, vertically centered
-    const sx = TARGET_X - TARGET_RADIUS_OUTER - 40 - SLIDER_THICKNESS;
+    const sx = TARGET_X - TARGET_RADIUS_OUTERMOST - 40 - SLIDER_THICKNESS;
     const sy = TARGET_Y - AIM_SLIDER_LENGTH/2;
 
     ctx.save();
@@ -559,7 +570,7 @@
 
   function drawPowerSlider() {
     // To right of target, vertically centered
-    const sx = TARGET_X + TARGET_RADIUS_OUTER + 40;
+    const sx = TARGET_X + TARGET_RADIUS_OUTERMOST + 40;
     const sy = TARGET_Y - POWER_SLIDER_LENGTH/2;
 
     ctx.save();
@@ -617,13 +628,13 @@
         case STATE_AIM_HORIZONTAL:
           // Lock horizontal offset
           locked_horizontal_offset =
-            (horizontalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER;
+            (horizontalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
           state = STATE_AIM_VERTICAL;
           break;
         case STATE_AIM_VERTICAL:
           // Lock vertical offset
           locked_vertical_offset =
-            (verticalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTER;
+            (verticalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
           state = STATE_AIM_POWER;
           break;
         case STATE_AIM_POWER:
@@ -658,7 +669,7 @@
 
     // Compute target for this throw
     // (Ideal power = minimal vertical deviation. Too low: drop below. Too high: overshoot upward)
-    let power_effect_factor = (POWER_IDEAL - locked_power_normalized) * (TARGET_RADIUS_OUTER * 2.0);
+    let power_effect_factor = (POWER_IDEAL - locked_power_normalized) * (TARGET_RADIUS_OUTERMOST * 2.0);
 
     axeTargetX = TARGET_X + locked_horizontal_offset;
     axeTargetY = TARGET_Y + locked_vertical_offset + power_effect_factor;
@@ -695,6 +706,9 @@
     } else if (dist <= TARGET_RADIUS_OUTER) {
       resultMsg = "On Target!";
       resultPoints = 5;
+    } else if (dist <= TARGET_RADIUS_OUTERMOST) {
+      resultMsg = "Close!";
+      resultPoints = 3;
     } else {
       resultMsg = "Missed!";
       resultPoints = 0;
