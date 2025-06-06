@@ -334,7 +334,7 @@
         break;
       case STATE_THROWING:
         if (axeIsFlying) {
-          axeThrowProgress += dt / axeThrowDuration;
+          axeThrowProgress += dt * bulletTimeFactor / axeThrowDuration;
           if (axeThrowProgress >= 1.0) {
             axeThrowProgress = 1.0;
             axeIsFlying = false;
@@ -676,8 +676,6 @@
 
   // ==== Throwing Logic ====
   function startThrow() {
-    bulletTimeActive = false;
-    bulletTimeFactor = 1;
     state = STATE_THROWING;
     axeIsFlying = true;
     axeThrowProgress = 0;
@@ -736,6 +734,9 @@
       lastThrowMissed = true;
     }
     score += resultPoints;
+
+    bulletTimeActive = false;
+    bulletTimeFactor = 1;
 
     showResultTimer = RESULT_SHOW_TIME;
     state = STATE_SHOWING_RESULT;
