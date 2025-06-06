@@ -77,6 +77,8 @@
   const DESIRED_AXE_SPRITE_HEIGHT = 55;
   // Approximate distance from axe center to the tip of the metal blade
   const AXE_BLADE_OFFSET = DESIRED_AXE_SPRITE_HEIGHT * 0.25;
+  // Distance from axe center to the middle of the blade cutting edge
+  const AXE_BLADE_CENTER_OFFSET = DESIRED_AXE_SPRITE_HEIGHT * 0.20;
 
   // Sliders
   // Aiming sliders extend past the target width for added challenge
@@ -586,11 +588,12 @@
       resultMsg = "Bad Power! No Stick!";
       resultPoints = 0;
     } else {
-      // Distance from the blade's edge to the center
-      let dx = axeHitX - TARGET_X;
-      let dy = axeHitY - TARGET_Y;
+      // Determine where the middle of the blade lands
+      const bladeX = axeHitX + AXE_BLADE_CENTER_OFFSET * Math.sin(axeAngle);
+      const bladeY = axeHitY - AXE_BLADE_CENTER_OFFSET * Math.cos(axeAngle);
+      let dx = bladeX - TARGET_X;
+      let dy = bladeY - TARGET_Y;
       let dist = Math.sqrt(dx*dx + dy*dy);
-      dist = Math.max(0, dist - AXE_BLADE_OFFSET);
 
       if (dist <= TARGET_RADIUS_INNER) {
         resultMsg = "Bullseye!";
