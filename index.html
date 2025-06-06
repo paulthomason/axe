@@ -325,24 +325,28 @@
 
   function initDebugConsole() {
     if (!debugConsoleEl) return;
+    debugConsoleEl.style.display = 'block';
+    const levels = ['log', 'warn', 'error'];
+    levels.forEach(level => {
+      const orig = console[level];
+      console[level] = function(...args) {
+        orig.apply(console, args);
+        logDebug(args.join(' '), level);
+      };
+    });
     window.addEventListener('error', e => {
-      logDebug(`Error: ${e.message} at ${e.filename}:${e.lineno}`);
+      logDebug(`Error: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
     });
     window.addEventListener('unhandledrejection', e => {
-      logDebug(`Unhandled rejection: ${e.reason}`);
+      logDebug(`Unhandled rejection: ${e.reason}`, 'error');
     });
-    const origError = console.error;
-    console.error = function(...args) {
-      origError.apply(console, args);
-      logDebug('Console error: ' + args.join(' '));
-    };
   }
 
-  function logDebug(msg) {
+  function logDebug(msg, level = 'log') {
     if (!debugConsoleEl) return;
-    debugConsoleEl.style.display = 'block';
     const div = document.createElement('div');
-    div.textContent = msg;
+    const t = new Date().toLocaleTimeString();
+    div.textContent = `[${t}] ${level.toUpperCase()}: ${msg}`;
     debugConsoleEl.appendChild(div);
     debugConsoleEl.scrollTop = debugConsoleEl.scrollHeight;
   }
@@ -441,6 +445,7 @@
         e.preventDefault();
         e.stopPropagation();
         if (!gameStarted || !lockInAvailable) return;
+        logDebug('Lock button pressed');
         startLockInChallenge();
         if (lockButtonEl) lockButtonEl.style.display = 'none';
       }
@@ -958,6 +963,7 @@
 
   function startLockInChallenge() {
     if (!lockInAvailable || lockInActive) return;
+    logDebug('Starting lock-in challenge');
     lockInAvailable = false;
     lockInActive = true;
     lockLetters = [];
@@ -978,6 +984,7 @@
 
   function lockKeyHandler(e) {
     const k = e.key.toUpperCase();
+    logDebug(`Key pressed: ${k}`);
     if (k === lockLetters[lockIndex]) {
       lockIndex++;
       if (lockIndex >= lockLetters.length) {
@@ -987,11 +994,13 @@
         if (lockPromptEl) lockPromptEl.textContent = lockLetters[lockIndex];
       }
     } else {
+      logDebug(`Expected ${lockLetters[lockIndex]} but got ${k}`, 'warn');
       failLockChallenge();
     }
   }
 
   function failLockChallenge() {
+    logDebug('Lock challenge failed', 'warn');
     window.removeEventListener('keydown', lockKeyHandler);
     if (lockPromptEl) lockPromptEl.style.display = 'none';
     lockInActive = false;
@@ -999,6 +1008,7 @@
   }
 
   function succeedLockChallenge() {
+    logDebug('Lock challenge succeeded');
     window.removeEventListener('keydown', lockKeyHandler);
     if (lockPromptEl) lockPromptEl.style.display = 'none';
     lockInActive = false;
@@ -1010,6 +1020,7 @@
 
   function startBullseyeThrow() {
     if (lockQueue <= 0) return;
+    logDebug('Starting guaranteed bullseye throw');
     lockQueue--;
     locked_horizontal_offset = 0;
     locked_vertical_offset = 0;
