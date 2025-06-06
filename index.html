@@ -107,6 +107,14 @@
       display: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
+    #restartButton {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      display: none;
+    }
     @media (max-width: 850px) {
       #gameCanvas { width: 97vw; }
     }
@@ -115,6 +123,7 @@
 <body>
   <h1>Axe Throwing Challenge</h1>
   <div id="gameWrapper">
+    <button id="restartButton">Restart</button>
     <canvas id="gameCanvas"></canvas>
     <div id="nameOverlay">
       <div id="nameBox">
@@ -179,6 +188,7 @@
   const HORIZ_SLIDER_SPEED = 240; // increased for higher difficulty
   const VERT_SLIDER_SPEED = 180;  // increased for higher difficulty
   const POWER_SLIDER_SPEED = 300; // increased for higher difficulty
+  const POWER_SPEED_INCREASE_SCALE = 0.7; // lessens power meter acceleration
   const AXE_ROTATION_SPEED = 400 * Math.PI / 180; // rad/sec
 
   // Colors
@@ -206,7 +216,7 @@
   const RESULT_SHOW_TIME = 2000; // ms
 
   // ==== Globals ====
-  let canvas, ctx, bulletButtonEl, multiButtonEl;
+  let canvas, ctx, bulletButtonEl, multiButtonEl, restartButtonEl;
   let targetName = '';
 
   let state = STATE_LOADING;
@@ -280,6 +290,7 @@
       gameStarted = true;
       if (bulletButtonEl) bulletButtonEl.style.display = 'block';
       if (multiButtonEl && multiThrowAvailable) multiButtonEl.style.display = 'block';
+      if (restartButtonEl) restartButtonEl.style.display = 'block';
     }
     function nameKeyHandler(e) {
       if (e.key === 'Enter') applyName();
@@ -298,6 +309,7 @@
     const tapButtonEl = document.getElementById('tapButton');
     bulletButtonEl = document.getElementById('bulletButton');
     multiButtonEl = document.getElementById('multiButton');
+    const restartButtonEl = document.getElementById('restartButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
 
     highScore = parseInt(getCookie('highScore')) || 0;
@@ -345,6 +357,15 @@
       multiButtonEl.addEventListener('click', multiBtnHandler);
       multiButtonEl.addEventListener('touchstart', multiBtnHandler);
     }
+
+    function restartHandler(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      resetGame();
+      state = STATE_AIM_HORIZONTAL;
+    }
+    restartButtonEl.addEventListener('click', restartHandler);
+    restartButtonEl.addEventListener('touchstart', restartHandler);
 
     // Start loading assets
     loadImages();
@@ -425,7 +446,8 @@
         if (verticalSliderPos < 0) { verticalSliderPos = 0; vertSliderDir = 1; }
         break;
       case STATE_AIM_POWER:
-        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * sliderSpeedMultiplier * bulletTimeFactor * dt / POWER_SLIDER_LENGTH;
+        const pMult = 1 + (sliderSpeedMultiplier - 1) * POWER_SPEED_INCREASE_SCALE;
+        powerSliderPos += powerSliderDir * POWER_SLIDER_SPEED * pMult * bulletTimeFactor * dt / POWER_SLIDER_LENGTH;
         if (powerSliderPos > 1) { powerSliderPos = 1; powerSliderDir = -1; }
         if (powerSliderPos < 0) { powerSliderPos = 0; powerSliderDir = 1; }
         break;
@@ -507,16 +529,16 @@
 
     // UI: Score and throws
     ctx.save();
+    ctx.font = "26px Segoe UI, Arial";
+    ctx.fillStyle = "#e13b3b";
+    ctx.textAlign = "left";
+    for (let i=0; i<lives; i++) {
+      ctx.fillText("♥", 22 + i*28, 36);
+    }
     ctx.font = "22px Segoe UI, Arial";
     ctx.fillStyle = "#1a1a1d";
-    ctx.textAlign = "left";
-    ctx.fillText("Score: " + score, 22, 36);
-    ctx.fillText("High: " + highScore, 22, 60);
-    ctx.fillStyle = "#e13b3b";
-    ctx.font = "26px Segoe UI, Arial";
-    for (let i=0; i<lives; i++) {
-      ctx.fillText("♥", 22 + i*28, 88);
-    }
+    ctx.fillText("Score: " + score, 22, 64);
+    ctx.fillText("High: " + highScore, 22, 88);
     ctx.restore();
 
     // Center target
@@ -984,6 +1006,7 @@
     bulletTimeFactor = 1;
     if (bulletButtonEl) bulletButtonEl.style.display = 'block';
     if (multiButtonEl) multiButtonEl.style.display = 'block';
+    if (restartButtonEl) restartButtonEl.style.display = 'block';
     lastThrowMissed = false;
     resetForNextThrow();
   }
