@@ -105,6 +105,7 @@
   const HORIZ_SLIDER_SPEED = 240; // increased for higher difficulty
   const VERT_SLIDER_SPEED = 180;  // increased for higher difficulty
   const POWER_SLIDER_SPEED = 300; // increased for higher difficulty
+  const AXE_ROTATION_SPEED = 400 * Math.PI / 180; // rad/sec
 
   // Colors
   const WOOD_BROWN = "#c28853";
@@ -302,12 +303,12 @@
       case STATE_THROWING:
         if (axeIsFlying) {
           axeThrowProgress += dt / axeThrowDuration;
-          axeAngle += dt * (400 * Math.PI / 180); // 400 deg/sec in radians
           if (axeThrowProgress >= 1.0) {
             axeThrowProgress = 1.0;
             axeIsFlying = false;
             evaluateThrow();
           }
+          axeAngle = AXE_ROTATION_SPEED * axeThrowDuration * (axeThrowProgress - 1);
         }
         break;
       case STATE_SHOWING_RESULT:
@@ -637,7 +638,7 @@
     state = STATE_THROWING;
     axeIsFlying = true;
     axeThrowProgress = 0;
-    axeAngle = 0;
+    axeAngle = -AXE_ROTATION_SPEED * axeThrowDuration;
 
     // Compute target for this throw
     // (Ideal power = minimal vertical deviation. Too low: drop below. Too high: overshoot upward)
@@ -691,8 +692,6 @@
     score += resultPoints;
 
     showResultTimer = RESULT_SHOW_TIME;
-    // Keep the axe vertical after it lands
-    axeAngle = 0;
     state = STATE_SHOWING_RESULT;
   }
 
