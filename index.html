@@ -95,6 +95,18 @@
       display: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
+    #multiButton {
+      margin-top: 12px;
+      padding: 14px 28px;
+      font-size: 1.4rem;
+      background: #222;
+      color: #ff0;
+      font-family: 'Courier New', Courier, monospace;
+      border: 2px solid #ff0;
+      border-radius: 8px;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
     @media (max-width: 850px) {
       #gameCanvas { width: 97vw; }
     }
@@ -114,8 +126,9 @@
   </div>
   <button id="tapButton">Tap</button>
   <button id="bulletButton">BULLET TIME</button>
+  <button id="multiButton">AXE BARRAGE</button>
   <div id="instructions">
-    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders.
+    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders. Use the AXE BARRAGE button once to unleash five random throws.
   </div>
 <script>
   // ==== Constants ====
@@ -193,7 +206,7 @@
   const RESULT_SHOW_TIME = 2000; // ms
 
   // ==== Globals ====
-  let canvas, ctx, bulletButtonEl;
+  let canvas, ctx, bulletButtonEl, multiButtonEl;
   let targetName = '';
 
   let state = STATE_LOADING;
@@ -221,6 +234,7 @@
   // Multiplier for slider speeds that increases when the player scores
   let sliderSpeedMultiplier = 1;
   let bulletTimeAvailable = true;
+  let multiThrowAvailable = true;
   let bulletTimeActive = false;
   let bulletTimeFactor = 1;
   let gameStarted = false;
@@ -259,6 +273,7 @@
       nameInputEl.removeEventListener('keydown', nameKeyHandler);
       gameStarted = true;
       if (bulletButtonEl) bulletButtonEl.style.display = 'block';
+      if (multiButtonEl && multiThrowAvailable) multiButtonEl.style.display = 'block';
     }
     function nameKeyHandler(e) {
       if (e.key === 'Enter') applyName();
@@ -276,6 +291,7 @@
     });
     const tapButtonEl = document.getElementById('tapButton');
     bulletButtonEl = document.getElementById('bulletButton');
+    multiButtonEl = document.getElementById('multiButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
 
     highScore = parseInt(getCookie('highScore')) || 0;
@@ -310,6 +326,18 @@
       }
       bulletButtonEl.addEventListener('click', bulletBtnHandler);
       bulletButtonEl.addEventListener('touchstart', bulletBtnHandler);
+    }
+
+    if (multiThrowAvailable) {
+      function multiBtnHandler(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!gameStarted || !multiThrowAvailable) return;
+        performMultiThrow();
+        if (multiButtonEl) multiButtonEl.style.display = 'none';
+      }
+      multiButtonEl.addEventListener('click', multiBtnHandler);
+      multiButtonEl.addEventListener('touchstart', multiBtnHandler);
     }
 
     // Start loading assets
@@ -701,6 +729,35 @@
     if (bulletButtonEl) bulletButtonEl.style.display = 'none';
   }
 
+  function performMultiThrow() {
+    if (!multiThrowAvailable) return;
+    multiThrowAvailable = false;
+    let anyScored = false;
+    for (let i = 0; i < 5; i++) {
+      locked_horizontal_offset = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
+      locked_vertical_offset = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
+      locked_power_normalized = Math.random();
+
+      axeAngle = -AXE_ROTATION_SPEED * axeThrowDuration;
+      let power_effect_factor = (POWER_IDEAL - locked_power_normalized) * (TARGET_RADIUS_OUTERMOST * 2.0);
+      axeTargetX = TARGET_X + locked_horizontal_offset;
+      axeTargetY = TARGET_Y + locked_vertical_offset + power_effect_factor;
+      let power_accuracy_modifier = 1.0 - Math.abs(locked_power_normalized - POWER_IDEAL) / POWER_IDEAL;
+      power_accuracy_modifier = Math.max(0, power_accuracy_modifier);
+      let max_rand = 18 * (1.0 - power_accuracy_modifier ** 2);
+      throw_random_dx = (Math.random() - 0.5) * 2 * max_rand;
+      throw_random_dy = (Math.random() - 0.5) * 2 * max_rand;
+      axeHitX = axeTargetX + throw_random_dx;
+      axeHitY = axeTargetY + throw_random_dy;
+      evaluateThrow();
+      if (resultPoints > 0) anyScored = true;
+    }
+    if (!anyScored) {
+      lastThrowMissed = true;
+      state = STATE_GAME_OVER;
+    }
+  }
+
   // ==== Input ====
   function handleInput(e) {
     if (!gameStarted) return;
@@ -820,9 +877,11 @@
     resultPoints = 0;
     sliderSpeedMultiplier = 1;
     bulletTimeAvailable = true;
+    multiThrowAvailable = true;
     bulletTimeActive = false;
     bulletTimeFactor = 1;
     if (bulletButtonEl) bulletButtonEl.style.display = 'block';
+    if (multiButtonEl) multiButtonEl.style.display = 'block';
     lastThrowMissed = false;
     resetForNextThrow();
   }
