@@ -151,6 +151,11 @@
   let axeTargetX = TARGET_X, axeTargetY = TARGET_Y;
   let axeHitX = TARGET_X, axeHitY = TARGET_Y;
 
+  // Offset from axe center to the exact blade tip used for scoring (computed
+  // after the sprite is scaled)
+  let axeTipOffsetX = 0;
+  let axeTipOffsetY = 0;
+
   // For random offset/accuracy
   let throw_random_dx = 0, throw_random_dy = 0;
 
@@ -200,6 +205,16 @@
       axeImageScaled.height = DESIRED_AXE_SPRITE_HEIGHT;
       const axectx = axeImageScaled.getContext('2d');
       axectx.drawImage(axeImageRaw, 0, 0, scaledW, DESIRED_AXE_SPRITE_HEIGHT);
+
+      // Compute the tip offset within the scaled sprite based on the known
+      // coordinates of the blade point in the original image.
+      const TIP_RAW_X = 750.13;
+      const TIP_RAW_Y = 351.68;
+      const scaleX = axeImageScaled.width / axeImageRaw.width;
+      const scaleY = axeImageScaled.height / axeImageRaw.height;
+      axeTipOffsetX = (TIP_RAW_X - axeImageRaw.width / 2) * scaleX;
+      axeTipOffsetY = (TIP_RAW_Y - axeImageRaw.height / 2) * scaleY;
+
       axeImageOk = true;
       assetLoaded();
     };
@@ -588,11 +603,15 @@
       resultMsg = "Bad Power! No Stick!";
       resultPoints = 0;
     } else {
-      // Determine where the middle of the blade lands
-      const bladeX = axeHitX + AXE_BLADE_CENTER_OFFSET * Math.sin(axeAngle);
-      const bladeY = axeHitY - AXE_BLADE_CENTER_OFFSET * Math.cos(axeAngle);
-      let dx = bladeX - TARGET_X;
-      let dy = bladeY - TARGET_Y;
+      // Determine where the precise blade tip lands
+      const rotX = axeTipOffsetX * Math.cos(axeAngle) -
+                   axeTipOffsetY * Math.sin(axeAngle);
+      const rotY = axeTipOffsetX * Math.sin(axeAngle) +
+                   axeTipOffsetY * Math.cos(axeAngle);
+      const tipX = axeHitX + rotX;
+      const tipY = axeHitY + rotY;
+      let dx = tipX - TARGET_X;
+      let dy = tipY - TARGET_Y;
       let dist = Math.sqrt(dx*dx + dy*dy);
 
       if (dist <= TARGET_RADIUS_INNER) {
