@@ -609,6 +609,10 @@
           }
         }
         break;
+      case STATE_LOCK_CHALLENGE:
+        lockTimer -= dt * 1000;
+        if (lockTimer <= 0) failLockChallenge();
+        break;
       case STATE_GAME_OVER:
         // Wait for user to press Space to reset
         break;
@@ -671,8 +675,6 @@
         ctx.restore();
         break;
       case STATE_LOCK_CHALLENGE:
-        lockTimer -= dt * 1000;
-        if (lockTimer <= 0) failLockChallenge();
         break;
       case STATE_GAME_OVER:
         ctx.save();
