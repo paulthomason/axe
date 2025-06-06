@@ -206,6 +206,7 @@
 
   // Game
   let score = 0;
+  let highScore = 0;
   let lastThrowMissed = false;
   let resultMsg = '', resultPoints = 0;
   let showResultTimer = 0;
@@ -273,6 +274,8 @@
     const tapButtonEl = document.getElementById('tapButton');
     bulletButtonEl = document.getElementById('bulletButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
+
+    highScore = parseInt(getCookie('highScore')) || 0;
 
     const isTouchOnly = navigator.maxTouchPoints > 0 && !window.matchMedia('(any-hover: hover)').matches;
 
@@ -427,6 +430,7 @@
     ctx.fillStyle = "#1a1a1d";
     ctx.textAlign = "left";
     ctx.fillText("Score: " + score, 22, 36);
+    ctx.fillText("High: " + highScore, 22, 60);
     ctx.restore();
 
     // Center target
@@ -475,8 +479,9 @@
         ctx.font = "28px Segoe UI, Arial";
         ctx.fillStyle = "#222";
         ctx.fillText("Final Score: " + score, CANVAS_WIDTH/2, 470);
+        ctx.fillText("High Score: " + highScore, CANVAS_WIDTH/2, 510);
         ctx.font = "22px Segoe UI, Arial";
-        ctx.fillText("Press Space to Play Again!", CANVAS_WIDTH/2, 510);
+        ctx.fillText("Press Space to Play Again!", CANVAS_WIDTH/2, 550);
         ctx.restore();
         break;
     }
@@ -790,6 +795,10 @@
       lastThrowMissed = true;
     }
     score += resultPoints;
+    if (score > highScore) {
+      highScore = score;
+      setCookie('highScore', highScore, 365);
+    }
 
     bulletTimeActive = false;
     bulletTimeFactor = 1;
@@ -828,6 +837,21 @@
     axeHitX = TARGET_X;
     axeHitY = TARGET_Y;
     lastThrowMissed = false;
+  }
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  }
+
+  function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+      expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
   }
 </script>
 <script type="module">
