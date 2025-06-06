@@ -221,6 +221,9 @@
   let score = 0;
   let highScore = 0;
   let lastThrowMissed = false;
+  let lives = 3;
+  let consecutiveBullseyes = 0;
+  let currentThrowIsMulti = false;
   let resultMsg = '', resultPoints = 0;
   let showResultTimer = 0;
 
@@ -452,15 +455,17 @@
             }
             ax.angle = AXE_ROTATION_SPEED * axeThrowDuration * (ax.progress - 1);
           });
-          if (allDone) {
-            const total = multiAxes.reduce((s,a)=>s+a.points,0);
-            bulletTimeActive = false;
-            bulletTimeFactor = 1;
-            resultPoints = total;
-            resultMsg = total > 0 ? 'Barrage!' : 'Missed!';
-            if (total === 0) lastThrowMissed = true;
-            showResultTimer = RESULT_SHOW_TIME;
-            state = total > 0 ? STATE_SHOWING_RESULT : STATE_GAME_OVER;
+            if (allDone) {
+              const total = multiAxes.reduce((s,a)=>s+a.points,0);
+              bulletTimeActive = false;
+              bulletTimeFactor = 1;
+              resultPoints = total;
+              resultMsg = total > 0 ? "Barrage!" : "Missed!";
+              lastThrowMissed = total === 0;
+              consecutiveBullseyes = 0;
+              showResultTimer = RESULT_SHOW_TIME;
+              state = STATE_SHOWING_RESULT;
+            }
           }
         } else if (axeIsFlying) {
           axeThrowProgress += dt * bulletTimeFactor / axeThrowDuration;
@@ -472,17 +477,23 @@
           axeAngle = AXE_ROTATION_SPEED * axeThrowDuration * (axeThrowProgress - 1);
         }
         break;
-      case STATE_SHOWING_RESULT:
-        showResultTimer -= dt * 1000;
-        if (showResultTimer <= 0) {
-          if (lastThrowMissed) {
-            state = STATE_GAME_OVER;
-          } else {
-            state = STATE_AIM_HORIZONTAL;
-            resetForNextThrow();
+        case STATE_SHOWING_RESULT:
+          showResultTimer -= dt * 1000;
+          if (showResultTimer <= 0) {
+            if (lastThrowMissed) {
+              if (!currentThrowIsMulti) lives--;
+              if (lives <= 0) {
+                state = STATE_GAME_OVER;
+              } else {
+                state = STATE_AIM_HORIZONTAL;
+                resetForNextThrow();
+              }
+            } else {
+              state = STATE_AIM_HORIZONTAL;
+              resetForNextThrow();
+            }
           }
-        }
-        break;
+          break;
       case STATE_GAME_OVER:
         // Wait for user to press Space to reset
         break;
@@ -501,6 +512,11 @@
     ctx.textAlign = "left";
     ctx.fillText("Score: " + score, 22, 36);
     ctx.fillText("High: " + highScore, 22, 60);
+    ctx.fillStyle = "#e13b3b";
+    ctx.font = "26px Segoe UI, Arial";
+    for (let i=0; i<lives; i++) {
+      ctx.fillText("♥", 22 + i*28, 88);
+    }
     ctx.restore();
 
     // Center target
@@ -784,6 +800,7 @@
 
   function performMultiThrow() {
     if (!multiThrowAvailable) return;
+    currentThrowIsMulti = true;
     multiThrowAvailable = false;
     multiAxes = [];
     for (let i = 0; i < 5; i++) {
@@ -841,14 +858,20 @@
           locked_power_normalized = powerSliderPos;
           startThrow();
           break;
-        case STATE_SHOWING_RESULT:
-          if (lastThrowMissed) {
-            state = STATE_GAME_OVER;
-          } else {
-            state = STATE_AIM_HORIZONTAL;
-            resetForNextThrow();
-          }
-          break;
+          case STATE_SHOWING_RESULT:
+            if (lastThrowMissed) {
+              if (!currentThrowIsMulti) lives--;
+              if (lives <= 0) {
+                state = STATE_GAME_OVER;
+              } else {
+                state = STATE_AIM_HORIZONTAL;
+                resetForNextThrow();
+              }
+            } else {
+              state = STATE_AIM_HORIZONTAL;
+              resetForNextThrow();
+            }
+            break;
         case STATE_GAME_OVER:
           resetGame();
           state = STATE_AIM_HORIZONTAL;
@@ -860,6 +883,7 @@
   // ==== Throwing Logic ====
   function startThrow() {
     state = STATE_THROWING;
+    currentThrowIsMulti = false;
     axeIsFlying = true;
     axeThrowProgress = 0;
     axeAngle = -AXE_ROTATION_SPEED * axeThrowDuration;
@@ -917,13 +941,18 @@
     if (resultPoints > 0) {
       sliderSpeedMultiplier *= 1.2;
       lastThrowMissed = false;
+      if (resultPoints === 10) {
+        consecutiveBullseyes++;
+        if (consecutiveBullseyes >= 3) {
+          lives++;
+          consecutiveBullseyes = 0;
+        }
+      } else {
+        consecutiveBullseyes = 0;
+      }
     } else {
       lastThrowMissed = true;
-    }
-    score += resultPoints;
-    if (score > highScore) {
-      highScore = score;
-      setCookie('highScore', highScore, 365);
+      consecutiveBullseyes = 0;
     }
 
     bulletTimeActive = false;
@@ -938,6 +967,8 @@
   function resetGame() {
     score = 0;
     resultMsg = '';
+    lives = 3;
+    consecutiveBullseyes = 0;
     resultPoints = 0;
     sliderSpeedMultiplier = 1;
     bulletTimeAvailable = true;
@@ -962,6 +993,7 @@
     axeIsFlying = false;
     axeThrowProgress = 0;
     axeAngle = 0;
+    currentThrowIsMulti = false;
     axeHitX = TARGET_X;
     axeHitY = TARGET_Y;
     lastThrowMissed = false;
