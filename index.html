@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Axe Throwing Challenge</title>
   <style>
     body {
@@ -22,6 +23,9 @@
       letter-spacing: 2px;
     }
     #gameCanvas {
+      width: 100%;
+      max-width: 800px;
+      aspect-ratio: 4 / 3;
       display: block;
       margin: 0 auto;
       background: #fff;
@@ -61,13 +65,13 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     @media (max-width: 850px) {
-      #gameCanvas { width: 97vw; height: 72vw; max-width:800px; max-height:600px; }
+      #gameCanvas { width: 97vw; }
     }
   </style>
 </head>
 <body>
   <h1>Axe Throwing Challenge</h1>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <canvas id="gameCanvas"></canvas>
   <button id="tapButton">Tap</button>
   <button id="bulletButton">BULLET TIME</button>
   <div id="instructions">
@@ -75,23 +79,32 @@
   </div>
 <script>
   // ==== Constants ====
-  const CANVAS_WIDTH = 800, CANVAS_HEIGHT = 600;
+  let CANVAS_WIDTH = 800, CANVAS_HEIGHT = 600;
 
   // Target (bullseye)
-  const TARGET_X = CANVAS_WIDTH / 2;
-  const TARGET_Y = CANVAS_HEIGHT / 3;
+  let TARGET_X = CANVAS_WIDTH / 2;
+  let TARGET_Y = CANVAS_HEIGHT / 3;
   const TARGET_RADIUS_OUTER = 100;
   const TARGET_RADIUS_MIDDLE = 65;
   const TARGET_RADIUS_INNER = 30;
 
   // Axe
-  const AXE_START_X = CANVAS_WIDTH / 2;
-  const AXE_START_Y = CANVAS_HEIGHT - 100;
+  let AXE_START_X = CANVAS_WIDTH / 2;
+  let AXE_START_Y = CANVAS_HEIGHT - 100;
   const DESIRED_AXE_SPRITE_HEIGHT = 55;
   // Approximate distance from axe center to the tip of the metal blade
   const AXE_BLADE_OFFSET = DESIRED_AXE_SPRITE_HEIGHT * 0.25;
   // Distance from axe center to the middle of the blade cutting edge
   const AXE_BLADE_CENTER_OFFSET = DESIRED_AXE_SPRITE_HEIGHT * 0.20;
+
+  function updateCanvasConstants() {
+    CANVAS_WIDTH = canvas.width;
+    CANVAS_HEIGHT = canvas.height;
+    TARGET_X = CANVAS_WIDTH / 2;
+    TARGET_Y = CANVAS_HEIGHT / 3;
+    AXE_START_X = CANVAS_WIDTH / 2;
+    AXE_START_Y = CANVAS_HEIGHT - 100;
+  }
 
   // Sliders
   // Aiming sliders extend past the target width for added challenge
@@ -182,6 +195,9 @@
   window.onload = function() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    updateCanvasConstants();
     const tapButtonEl = document.getElementById('tapButton');
     bulletButtonEl = document.getElementById('bulletButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
