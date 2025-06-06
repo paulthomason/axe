@@ -522,7 +522,7 @@
     ctx.fillStyle = "#d9d9dd";
     ctx.fillRect(sx, sy, SLIDER_THICKNESS, POWER_SLIDER_LENGTH);
 
-    // Zones for color coding
+    // Zones for color coding (entire meter)
     const zones = [
       { start: 0.0, end: 0.35, color: "#e13b3b" },  // red
       { start: 0.35, end: 0.5, color: "#ffd93d" }, // yellow
@@ -531,16 +531,23 @@
       { start: 0.95, end: 1.0, color: "#e13b3b" }  // red
     ];
 
-    // Draw filled portion with appropriate zone colors
+    // Draw color segments across the full slider length
     zones.forEach(zone => {
-      if (powerSliderPos <= zone.start) return;
-      const fillFrac = Math.min(powerSliderPos, zone.end) - zone.start;
-      if (fillFrac <= 0) return;
-      const segHeight = POWER_SLIDER_LENGTH * fillFrac;
-      const segBottom = sy + POWER_SLIDER_LENGTH * (1 - zone.start);
+      const segHeight = POWER_SLIDER_LENGTH * (zone.end - zone.start);
+      const segY = sy + POWER_SLIDER_LENGTH * (1 - zone.end);
       ctx.fillStyle = zone.color;
-      ctx.fillRect(sx, segBottom - segHeight, SLIDER_THICKNESS, segHeight);
+      ctx.fillRect(sx, segY, SLIDER_THICKNESS, segHeight);
     });
+
+    // Marker (blue horizontal line with white outline for visibility)
+    const my = sy + POWER_SLIDER_LENGTH * (1 - powerSliderPos);
+    const markX = sx - (SLIDER_MARKER_L - SLIDER_THICKNESS) / 2;
+    const markY = my - SLIDER_MARKER_T / 2;
+    ctx.fillStyle = "#134292";
+    ctx.fillRect(markX, markY, SLIDER_MARKER_L, SLIDER_MARKER_T);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(markX, markY, SLIDER_MARKER_L, SLIDER_MARKER_T);
 
     // Outline
     ctx.lineWidth = 2;
