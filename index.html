@@ -939,6 +939,13 @@
     resultMsg = msg;
     resultPoints = points;
     if (resultPoints > 0) {
+      score += resultPoints;
+      if (score > highScore) {
+        highScore = score;
+        setCookie('highScore', highScore, 365);
+      }
+    }
+    if (resultPoints > 0) {
       sliderSpeedMultiplier *= 1.2;
       lastThrowMissed = false;
       if (resultPoints === 10) {
