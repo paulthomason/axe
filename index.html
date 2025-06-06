@@ -107,6 +107,31 @@
       display: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
+    #lockButton {
+      margin-top: 12px;
+      padding: 14px 28px;
+      font-size: 1.4rem;
+      background: #014;
+      color: #0ff;
+      font-family: 'Courier New', Courier, monospace;
+      border: 2px solid #0ff;
+      border-radius: 8px;
+      display: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    #lockPrompt {
+      position: absolute;
+      top: 50px;
+      right: 10px;
+      padding: 6px 12px;
+      font-size: 1.6rem;
+      background: #fff;
+      color: #000;
+      border: 2px solid #000;
+      font-family: 'Courier New', Courier, monospace;
+      border-radius: 6px;
+      display: none;
+    }
     #restartButton {
       position: absolute;
       top: 10px;
@@ -124,6 +149,7 @@
   <h1>Axe Throwing Challenge</h1>
   <div id="gameWrapper">
     <button id="restartButton">Restart</button>
+    <div id="lockPrompt"></div>
     <canvas id="gameCanvas"></canvas>
     <div id="nameOverlay">
       <div id="nameBox">
@@ -136,8 +162,9 @@
   <button id="tapButton">Tap</button>
   <button id="bulletButton">BULLET TIME</button>
   <button id="multiButton">AXE BARRAGE</button>
+  <button id="lockButton">LOCK IN</button>
   <div id="instructions">
-    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders. Use the AXE BARRAGE button once to unleash five random throws.
+    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders. Use the AXE BARRAGE button once to unleash five random throws. Use the LOCK IN button once for a chance at three perfect hits.
   </div>
 <script>
   // ==== Constants ====
@@ -206,6 +233,7 @@
   const STATE_THROWING          = 4;
   const STATE_SHOWING_RESULT    = 5;
   const STATE_GAME_OVER         = 6;
+  const STATE_LOCK_CHALLENGE    = 7;
 
   // Power
   // POWER_IDEAL controls how the selected power affects vertical accuracy.
@@ -216,7 +244,7 @@
   const RESULT_SHOW_TIME = 2000; // ms
 
   // ==== Globals ====
-  let canvas, ctx, bulletButtonEl, multiButtonEl, restartButtonEl;
+  let canvas, ctx, bulletButtonEl, multiButtonEl, lockButtonEl, lockPromptEl, restartButtonEl;
   let targetName = '';
 
   let state = STATE_LOADING;
@@ -248,6 +276,13 @@
   let sliderSpeedMultiplier = 1;
   let bulletTimeAvailable = true;
   let multiThrowAvailable = true;
+  let lockInAvailable = true;
+  let lockInActive = false;
+  let lockLetters = [];
+  let lockIndex = 0;
+  let lockTimer = 0;
+  let lockPrevState = STATE_AIM_HORIZONTAL;
+  let lockQueue = 0;
   let bulletTimeActive = false;
   let bulletTimeFactor = 1;
   let gameStarted = false;
@@ -290,6 +325,7 @@
       gameStarted = true;
       if (bulletButtonEl) bulletButtonEl.style.display = 'block';
       if (multiButtonEl && multiThrowAvailable) multiButtonEl.style.display = 'block';
+      if (lockButtonEl && lockInAvailable) lockButtonEl.style.display = 'block';
       if (restartButtonEl) restartButtonEl.style.display = 'block';
     }
     function nameKeyHandler(e) {
@@ -309,6 +345,8 @@
     const tapButtonEl = document.getElementById('tapButton');
     bulletButtonEl = document.getElementById('bulletButton');
     multiButtonEl = document.getElementById('multiButton');
+    lockButtonEl = document.getElementById('lockButton');
+    lockPromptEl = document.getElementById('lockPrompt');
     const restartButtonEl = document.getElementById('restartButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
 
@@ -356,6 +394,18 @@
       }
       multiButtonEl.addEventListener('click', multiBtnHandler);
       multiButtonEl.addEventListener('touchstart', multiBtnHandler);
+    }
+
+    if (lockInAvailable) {
+      function lockBtnHandler(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!gameStarted || !lockInAvailable) return;
+        startLockInChallenge();
+        if (lockButtonEl) lockButtonEl.style.display = 'none';
+      }
+      lockButtonEl.addEventListener('click', lockBtnHandler);
+      lockButtonEl.addEventListener('touchstart', lockBtnHandler);
     }
 
     function restartHandler(e) {
@@ -499,23 +549,26 @@
           axeAngle = AXE_ROTATION_SPEED * axeThrowDuration * (axeThrowProgress - 1);
         }
         break;
-        case STATE_SHOWING_RESULT:
-          showResultTimer -= dt * 1000;
-          if (showResultTimer <= 0) {
-            if (lastThrowMissed) {
-              if (!currentThrowIsMulti) lives--;
-              if (lives <= 0) {
-                state = STATE_GAME_OVER;
-              } else {
-                state = STATE_AIM_HORIZONTAL;
-                resetForNextThrow();
-              }
+      case STATE_SHOWING_RESULT:
+        showResultTimer -= dt * 1000;
+        if (showResultTimer <= 0) {
+          if (lockQueue > 0) {
+            resetForNextThrow();
+            startBullseyeThrow();
+          } else if (lastThrowMissed) {
+            if (!currentThrowIsMulti) lives--;
+            if (lives <= 0) {
+              state = STATE_GAME_OVER;
             } else {
               state = STATE_AIM_HORIZONTAL;
               resetForNextThrow();
             }
+          } else {
+            state = STATE_AIM_HORIZONTAL;
+            resetForNextThrow();
           }
-          break;
+        }
+        break;
       case STATE_GAME_OVER:
         // Wait for user to press Space to reset
         break;
@@ -576,6 +629,10 @@
         ctx.font = "24px Segoe UI, Arial";
         ctx.fillText("+" + resultPoints + " points", CANVAS_WIDTH/2, 510);
         ctx.restore();
+        break;
+      case STATE_LOCK_CHALLENGE:
+        lockTimer -= dt * 1000;
+        if (lockTimer <= 0) failLockChallenge();
         break;
       case STATE_GAME_OVER:
         ctx.save();
@@ -857,9 +914,71 @@
     state = STATE_THROWING;
   }
 
+  function startLockInChallenge() {
+    if (!lockInAvailable || lockInActive) return;
+    lockInAvailable = false;
+    lockInActive = true;
+    lockLetters = [];
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (let i = 0; i < 5; i++) {
+      const ch = letters[Math.floor(Math.random() * letters.length)];
+      lockLetters.push(ch);
+    }
+    lockIndex = 0;
+    lockTimer = 1500;
+    lockPrevState = state;
+    state = STATE_LOCK_CHALLENGE;
+    if (lockPromptEl) {
+      lockPromptEl.textContent = lockLetters[lockIndex];
+      lockPromptEl.style.display = 'block';
+    }
+    window.addEventListener('keydown', lockKeyHandler);
+  }
+
+  function lockKeyHandler(e) {
+    const k = e.key.toUpperCase();
+    if (k === lockLetters[lockIndex]) {
+      lockIndex++;
+      if (lockIndex >= lockLetters.length) {
+        succeedLockChallenge();
+      } else {
+        lockTimer = 1500;
+        if (lockPromptEl) lockPromptEl.textContent = lockLetters[lockIndex];
+      }
+    } else {
+      failLockChallenge();
+    }
+  }
+
+  function failLockChallenge() {
+    window.removeEventListener('keydown', lockKeyHandler);
+    if (lockPromptEl) lockPromptEl.style.display = 'none';
+    lockInActive = false;
+    state = lockPrevState;
+  }
+
+  function succeedLockChallenge() {
+    window.removeEventListener('keydown', lockKeyHandler);
+    if (lockPromptEl) lockPromptEl.style.display = 'none';
+    lockInActive = false;
+    lockQueue = 3;
+    state = lockPrevState;
+    startBullseyeThrow();
+  }
+
+  function startBullseyeThrow() {
+    if (lockQueue <= 0) return;
+    lockQueue--;
+    locked_horizontal_offset = 0;
+    locked_vertical_offset = 0;
+    locked_power_normalized = POWER_IDEAL;
+    startThrow();
+  }
+
   // ==== Input ====
   function handleInput(e) {
     if (!gameStarted) return;
+    if (state === STATE_LOCK_CHALLENGE) return;
     if (e.code === 'Space') {
       e.preventDefault();
       switch (state) {
@@ -987,7 +1106,7 @@
     bulletTimeActive = false;
     bulletTimeFactor = 1;
 
-    showResultTimer = RESULT_SHOW_TIME;
+    showResultTimer = lockQueue > 0 ? 600 : RESULT_SHOW_TIME;
     state = STATE_SHOWING_RESULT;
   }
 
@@ -1002,10 +1121,13 @@
     sliderSpeedMultiplier = 1;
     bulletTimeAvailable = true;
     multiThrowAvailable = true;
+    lockInAvailable = true;
+    lockQueue = 0;
     bulletTimeActive = false;
     bulletTimeFactor = 1;
     if (bulletButtonEl) bulletButtonEl.style.display = 'block';
     if (multiButtonEl) multiButtonEl.style.display = 'block';
+    if (lockButtonEl) lockButtonEl.style.display = 'block';
     if (restartButtonEl) restartButtonEl.style.display = 'block';
     lastThrowMissed = false;
     resetForNextThrow();
@@ -1028,6 +1150,7 @@
     axeHitY = TARGET_Y;
     lastThrowMissed = false;
     multiAxes = [];
+    if (lockPromptEl) lockPromptEl.style.display = 'none';
   }
 
   function getCookie(name) {
