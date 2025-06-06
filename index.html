@@ -154,6 +154,7 @@
 
   // ==== Globals ====
   let canvas, ctx, bulletButtonEl;
+  let targetName = 'Pablo';
 
   let state = STATE_LOADING;
 
@@ -204,6 +205,8 @@
   // ----
 
   window.onload = function() {
+    const nameInput = prompt('Who do you want to throw axes at?');
+    if (nameInput) targetName = nameInput;
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     canvas.width = canvas.clientWidth;
@@ -483,7 +486,7 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#fff";
-    ctx.fillText("Pablo", TARGET_X, TARGET_Y);
+    ctx.fillText(targetName, TARGET_X, TARGET_Y);
 
     // Score numbers
     ctx.font = "bold 20px Segoe UI, Arial";
