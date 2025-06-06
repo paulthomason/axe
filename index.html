@@ -22,16 +22,47 @@
       font-size: 2.4rem;
       letter-spacing: 2px;
     }
-    #gameCanvas {
+    #gameWrapper {
+      position: relative;
       width: 100%;
       max-width: 800px;
+      margin: 0 auto;
+    }
+    #gameCanvas {
+      width: 100%;
       aspect-ratio: 4 / 3;
       display: block;
-      margin: 0 auto;
       background: #fff;
       box-shadow: 0 6px 30px rgba(80,80,100,0.13);
       border-radius: 10px;
       border: 1.5px solid #b0b0c0;
+    }
+    #nameOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #nameBox {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    #nameBox input {
+      padding: 8px;
+      font-size: 1rem;
+    }
+    #nameBox button {
+      margin-left: 8px;
+      padding: 8px 16px;
+      font-size: 1rem;
     }
     #instructions {
       margin: 20px auto 0;
@@ -71,7 +102,16 @@
 </head>
 <body>
   <h1>Axe Throwing Challenge</h1>
-  <canvas id="gameCanvas"></canvas>
+  <div id="gameWrapper">
+    <canvas id="gameCanvas"></canvas>
+    <div id="nameOverlay">
+      <div id="nameBox">
+        <label for="nameInput">Who do you want to throw axes at?</label><br>
+        <input id="nameInput" type="text" placeholder="Enter a name" />
+        <button id="nameSubmit">Start</button>
+      </div>
+    </div>
+  </div>
   <button id="tapButton">Tap</button>
   <button id="bulletButton">BULLET TIME</button>
   <div id="instructions">
@@ -205,10 +245,23 @@
   // ----
 
   window.onload = function() {
-    const nameInput = prompt('Who do you want to throw axes at?');
-    if (nameInput) targetName = nameInput;
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
+    const nameOverlayEl = document.getElementById('nameOverlay');
+    const nameInputEl = document.getElementById('nameInput');
+    const nameSubmitEl = document.getElementById('nameSubmit');
+
+    function applyName() {
+      if (nameInputEl.value.trim()) targetName = nameInputEl.value.trim();
+      nameOverlayEl.style.display = 'none';
+      nameInputEl.removeEventListener('keydown', nameKeyHandler);
+    }
+    function nameKeyHandler(e) {
+      if (e.key === 'Enter') applyName();
+    }
+    nameSubmitEl.addEventListener('click', applyName);
+    nameInputEl.addEventListener('keydown', nameKeyHandler);
+    nameInputEl.focus();
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
     updateCanvasConstants();
