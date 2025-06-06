@@ -64,7 +64,7 @@ function runBullseyeTest() {
 
 function runMissTest() {
   resetState();
-  w.eval(`axeHitX = TARGET_X + TARGET_RADIUS_OUTER + 5`);
+  w.eval(`axeHitX = TARGET_X + TARGET_RADIUS_OUTERMOST + 5`);
   w.eval('axeHitY = TARGET_Y');
   w.eval('axeAngle = 0');
   w.eval('axeTipOffsetX = 0');
