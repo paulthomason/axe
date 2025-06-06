@@ -84,7 +84,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     #bulletButton {
-      margin-top: 12px;
       padding: 14px 28px;
       font-size: 1.4rem;
       background: #000;
@@ -96,7 +95,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     #multiButton {
-      margin-top: 12px;
       padding: 14px 28px;
       font-size: 1.4rem;
       background: #222;
@@ -108,7 +106,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
     #lockButton {
-      margin-top: 12px;
       padding: 14px 28px;
       font-size: 1.4rem;
       background: #014;
@@ -118,6 +115,12 @@
       border-radius: 8px;
       display: none;
       box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    #powerButtons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
     }
     #lockPrompt {
       position: absolute;
@@ -174,9 +177,11 @@
     </div>
   </div>
   <button id="tapButton">Tap</button>
-  <button id="bulletButton">BULLET TIME</button>
-  <button id="multiButton">AXE BARRAGE</button>
-  <button id="lockButton">LOCK IN</button>
+  <div id="powerButtons">
+    <button id="bulletButton">BULLET TIME</button>
+    <button id="multiButton">AXE BARRAGE</button>
+    <button id="lockButton">LOCK IN</button>
+  </div>
   <div id="instructions">
     Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders. Use the AXE BARRAGE button once to unleash five random throws. Use the LOCK IN button once for a chance at three perfect hits.
   </div>
