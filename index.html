@@ -207,7 +207,13 @@
 
     if (bulletTimeAvailable) {
       bulletButtonEl.style.display = 'block';
-      bulletButtonEl.addEventListener('click', activateBulletTime);
+      function bulletBtnHandler(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        activateBulletTime();
+      }
+      bulletButtonEl.addEventListener('click', bulletBtnHandler);
+      bulletButtonEl.addEventListener('touchstart', bulletBtnHandler);
     }
 
     // Start loading assets
