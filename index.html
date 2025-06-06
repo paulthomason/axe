@@ -122,7 +122,10 @@
   const AXE_ROTATION_SPEED = 400 * Math.PI / 180; // rad/sec
 
   // Colors
-  const WOOD_BROWN = "#c28853";
+  const COLOR_OUTERMOST = "#d8b373"; // outermost ring
+  const COLOR_OUTER = "#c7965c";    // outer ring
+  const COLOR_MIDDLE = "#b07845";   // middle ring
+  const COLOR_INNER = "#e53636";    // bullseye
   const DARK_WOOD_BROWN = "#704e2e";
 
   // States
@@ -418,7 +421,7 @@
     ctx.save();
     ctx.beginPath();
     ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_OUTERMOST, 0, Math.PI*2);
-    ctx.fillStyle = WOOD_BROWN;
+    ctx.fillStyle = COLOR_OUTERMOST;
     ctx.fill();
     ctx.lineWidth = 5;
     ctx.strokeStyle = DARK_WOOD_BROWN;
@@ -427,7 +430,7 @@
     // Outer ring
     ctx.beginPath();
     ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_OUTER, 0, Math.PI*2);
-    ctx.fillStyle = WOOD_BROWN;
+    ctx.fillStyle = COLOR_OUTER;
     ctx.fill();
     ctx.lineWidth = 5;
     ctx.strokeStyle = DARK_WOOD_BROWN;
@@ -436,7 +439,7 @@
     // Middle ring
     ctx.beginPath();
     ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_MIDDLE, 0, Math.PI*2);
-    ctx.fillStyle = WOOD_BROWN;
+    ctx.fillStyle = COLOR_MIDDLE;
     ctx.fill();
     ctx.strokeStyle = DARK_WOOD_BROWN;
     ctx.stroke();
@@ -444,7 +447,7 @@
     // Inner ring
     ctx.beginPath();
     ctx.arc(TARGET_X, TARGET_Y, TARGET_RADIUS_INNER, 0, Math.PI*2);
-    ctx.fillStyle = "#e53636";
+    ctx.fillStyle = COLOR_INNER;
     ctx.fill();
 
     ctx.lineWidth = 2.5;
@@ -472,12 +475,13 @@
 
     // Score numbers
     ctx.font = "bold 20px Segoe UI, Arial";
-    ctx.textAlign = "center";
+    ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#000";
-    ctx.fillText("3", TARGET_X, TARGET_Y - (TARGET_RADIUS_OUTERMOST + TARGET_RADIUS_OUTER)/2);
-    ctx.fillText("5", TARGET_X, TARGET_Y - (TARGET_RADIUS_OUTER + TARGET_RADIUS_MIDDLE)/2);
-    ctx.fillText("7", TARGET_X, TARGET_Y - (TARGET_RADIUS_MIDDLE + TARGET_RADIUS_INNER)/2);
+    const LABEL_OFFSET_X = 20;
+    ctx.fillText("3", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_OUTERMOST + TARGET_RADIUS_OUTER)/2);
+    ctx.fillText("5", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_OUTER + TARGET_RADIUS_MIDDLE)/2);
+    ctx.fillText("7", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_MIDDLE + TARGET_RADIUS_INNER)/2);
     ctx.restore();
   }
 
