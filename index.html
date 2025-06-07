@@ -978,7 +978,7 @@
       lockLetters.push(ch);
     }
     lockIndex = 0;
-    lockTimer = 800;
+    lockTimer = 1100;
     state = STATE_LOCK_CHALLENGE;
     if (lockPromptEl) {
       lockPromptEl.textContent = lockLetters[lockIndex];
@@ -995,7 +995,7 @@
       if (lockIndex >= lockLetters.length) {
         succeedLockChallenge();
       } else {
-        lockTimer = 800;
+        lockTimer = 1100;
         if (lockPromptEl) lockPromptEl.textContent = lockLetters[lockIndex];
       }
     } else {
