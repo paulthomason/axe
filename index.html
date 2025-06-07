@@ -336,8 +336,8 @@
 
   // Hit markers shown where scoring throws land
   let hitMarks = [];
-  const HIT_MARK_FADE_RATE = 0.5; // alpha per second
-  const HIT_MARK_MIN_ALPHA = 0.2;
+  const HIT_MARK_FADE_RATE = 0.5; // unused but kept for reference
+  const HIT_MARK_MIN_ALPHA = 0.2; // unused but kept for reference
 
   function initDebugConsole() {
     if (!debugConsoleEl) return;
@@ -588,7 +588,7 @@
                               axeTipOffsetY * Math.sin(ax.angle);
                   const ry = axeTipOffsetX * Math.sin(ax.angle) +
                               axeTipOffsetY * Math.cos(ax.angle);
-                  hitMarks.push({ x: ax.hitX + rx, y: ax.hitY + ry, alpha: 1 });
+                  hitMarks.push({ x: ax.hitX + rx, y: ax.hitY + ry, angle: ax.angle });
                   sliderSpeedMultiplier *= 1.2;
                   lastThrowMissed = false;
                 }
@@ -652,13 +652,7 @@
         break;
     }
 
-    // Fade hit markers
-    hitMarks.forEach(mark => {
-      if (mark.alpha > HIT_MARK_MIN_ALPHA) {
-        mark.alpha -= HIT_MARK_FADE_RATE * dt;
-        if (mark.alpha < HIT_MARK_MIN_ALPHA) mark.alpha = HIT_MARK_MIN_ALPHA;
-      }
-    });
+    // Hit marks no longer fade; they persist until game reset
   }
 
   // ==== Draw ====
@@ -868,18 +862,22 @@
   }
 
   function drawHitMarks() {
-    const size = 12;
+    const size = 16;
     hitMarks.forEach(mark => {
-      if (mark.alpha <= 0) return;
       ctx.save();
-      ctx.strokeStyle = `rgba(255,0,0,${mark.alpha})`;
-      ctx.lineWidth = 2;
+      ctx.translate(mark.x, mark.y);
+      ctx.rotate(mark.angle);
+      const grad = ctx.createLinearGradient(-size / 2, 0, size / 2, 0);
+      grad.addColorStop(0, '#3b2a1a');
+      grad.addColorStop(0.5, '#a6784f');
+      grad.addColorStop(1, '#3b2a1a');
+      ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(mark.x - size / 2, mark.y - size / 2);
-      ctx.lineTo(mark.x + size / 2, mark.y + size / 2);
-      ctx.moveTo(mark.x + size / 2, mark.y - size / 2);
-      ctx.lineTo(mark.x - size / 2, mark.y + size / 2);
-      ctx.stroke();
+      ctx.moveTo(-size / 2, 0);
+      ctx.lineTo(0, size);
+      ctx.lineTo(size / 2, 0);
+      ctx.closePath();
+      ctx.fill();
       ctx.restore();
     });
   }
@@ -1192,7 +1190,7 @@
     const tipX = axeHitX + rotX;
     const tipY = axeHitY + rotY;
     if (points > 0) {
-      hitMarks.push({ x: tipX, y: tipY, alpha: 1 });
+      hitMarks.push({ x: tipX, y: tipY, angle: axeAngle });
     }
     resultMsg = msg;
     resultPoints = points;
