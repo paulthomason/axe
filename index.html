@@ -315,7 +315,7 @@
   let gameStarted = false;
   let turnCount = 0;
   let activePowerup = null;
-  const POWERUP_SIZE = 26;
+  const POWERUP_SIZE = 52;
   let locked_horizontal_offset = 0;
   let locked_vertical_offset = 0;
   let locked_power_normalized = 0;
@@ -802,13 +802,16 @@
 
     if (activePowerup) {
       const half = activePowerup.size / 2;
-      ctx.fillStyle = '#fff';
+      let color = '#0f0';
+      if (activePowerup.type === 'A') color = '#ff0';
+      if (activePowerup.type === 'L') color = '#0ff';
+      ctx.fillStyle = '#000';
       ctx.fillRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
       ctx.lineWidth = 2;
-      ctx.strokeStyle = '#000';
+      ctx.strokeStyle = color;
       ctx.strokeRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 20px Courier New';
+      ctx.fillStyle = color;
+      ctx.font = 'bold 24px Courier New';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(activePowerup.type, activePowerup.x, activePowerup.y);
