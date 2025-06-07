@@ -328,6 +328,11 @@
   // For random offset/accuracy
   let throw_random_dx = 0, throw_random_dy = 0;
 
+  // Hit markers shown where scoring throws land
+  let hitMarks = [];
+  const HIT_MARK_FADE_RATE = 0.5; // alpha per second
+  const HIT_MARK_MIN_ALPHA = 0.2;
+
   function initDebugConsole() {
     if (!debugConsoleEl) return;
     debugConsoleEl.style.display = 'block';
@@ -565,6 +570,11 @@
                 ax.scored = true;
                 score += res.points;
                 if (res.points > 0) {
+                  const rx = axeTipOffsetX * Math.cos(ax.angle) -
+                              axeTipOffsetY * Math.sin(ax.angle);
+                  const ry = axeTipOffsetX * Math.sin(ax.angle) +
+                              axeTipOffsetY * Math.cos(ax.angle);
+                  hitMarks.push({ x: ax.hitX + rx, y: ax.hitY + ry, alpha: 1 });
                   sliderSpeedMultiplier *= 1.2;
                   lastThrowMissed = false;
                 }
@@ -627,6 +637,14 @@
         // Wait for user to press Space to reset
         break;
     }
+
+    // Fade hit markers
+    hitMarks.forEach(mark => {
+      if (mark.alpha > HIT_MARK_MIN_ALPHA) {
+        mark.alpha -= HIT_MARK_FADE_RATE * dt;
+        if (mark.alpha < HIT_MARK_MIN_ALPHA) mark.alpha = HIT_MARK_MIN_ALPHA;
+      }
+    });
   }
 
   // ==== Draw ====
@@ -650,6 +668,7 @@
 
     // Center target
     drawTarget();
+    drawHitMarks();
 
     // Draw sliders
     if (state === STATE_AIM_HORIZONTAL) drawHorizontalSlider();
@@ -831,6 +850,23 @@
       let x = sx + (ex - sx) * t;
       let y = sy + (ey - sy) * t - arc * Math.sin(Math.PI * t);
       drawAxeSprite(x, y, ax.angle);
+    });
+  }
+
+  function drawHitMarks() {
+    const size = 12;
+    hitMarks.forEach(mark => {
+      if (mark.alpha <= 0) return;
+      ctx.save();
+      ctx.strokeStyle = `rgba(255,0,0,${mark.alpha})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(mark.x - size / 2, mark.y - size / 2);
+      ctx.lineTo(mark.x + size / 2, mark.y + size / 2);
+      ctx.moveTo(mark.x + size / 2, mark.y - size / 2);
+      ctx.lineTo(mark.x - size / 2, mark.y + size / 2);
+      ctx.stroke();
+      ctx.restore();
     });
   }
 
@@ -1135,6 +1171,15 @@
 
   function evaluateThrow() {
     const {msg, points} = evaluateHit(axeHitX, axeHitY, axeAngle);
+    const rotX = axeTipOffsetX * Math.cos(axeAngle) -
+                 axeTipOffsetY * Math.sin(axeAngle);
+    const rotY = axeTipOffsetX * Math.sin(axeAngle) +
+                 axeTipOffsetY * Math.cos(axeAngle);
+    const tipX = axeHitX + rotX;
+    const tipY = axeHitY + rotY;
+    if (points > 0) {
+      hitMarks.push({ x: tipX, y: tipY, alpha: 1 });
+    }
     resultMsg = msg;
     resultPoints = points;
     if (resultPoints > 0) {
@@ -1188,6 +1233,7 @@
     if (lockButtonEl) lockButtonEl.style.display = 'block';
     if (restartButtonEl) restartButtonEl.style.display = 'block';
     lastThrowMissed = false;
+    hitMarks = [];
     resetForNextThrow();
   }
   function resetForNextThrow() {
