@@ -393,7 +393,13 @@
       if (e.key === 'Enter') applyName();
     }
     nameSubmitEl.addEventListener('click', applyName);
-    skipNameEl.addEventListener('click', applyName);
+    function skipNameHandler(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      applyName();
+    }
+    skipNameEl.addEventListener('click', skipNameHandler);
+    skipNameEl.addEventListener('touchstart', skipNameHandler);
     nameInputEl.addEventListener('keydown', nameKeyHandler);
     nameInputEl.focus();
     canvas.width = canvas.clientWidth;
