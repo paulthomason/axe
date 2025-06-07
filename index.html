@@ -184,12 +184,12 @@
   </div>
   <button id="tapButton">Tap</button>
   <div id="powerButtons">
-    <button id="bulletButton">BULLET TIME</button>
-    <button id="multiButton">AXE BARRAGE</button>
-    <button id="lockButton">LOCK IN</button>
+    <button id="bulletButton">BULLET TIME (1)</button>
+    <button id="multiButton">AXE BARRAGE (1)</button>
+    <button id="lockButton">LOCK IN (1)</button>
   </div>
   <div id="instructions">
-    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button once per game to slow the sliders. Use the AXE BARRAGE button once to unleash five random throws. Use the LOCK IN button once for a chance at three perfect hits.
+    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button to slow the sliders. Use the AXE BARRAGE button to unleash five random throws. Use the LOCK IN button for a chance at three perfect hits. Earn more power-ups by hitting the bonus squares.
   </div>
   <div id="debugConsole"></div>
   <script>
@@ -302,9 +302,9 @@
   // Multiplier for slider speeds that increases when the player scores
   // capped by MAX_SLIDER_SPEED
   let sliderSpeedMultiplier = 1;
-  let bulletTimeAvailable = true;
-  let multiThrowAvailable = true;
-  let lockInAvailable = true;
+  let bulletTimeCount = 1;
+  let multiThrowCount = 1;
+  let lockInCount = 1;
   let lockInActive = false;
   let lockLetters = [];
   let lockIndex = 0;
@@ -313,6 +313,9 @@
   let bulletTimeActive = false;
   let bulletTimeFactor = 1;
   let gameStarted = false;
+  let turnCount = 0;
+  let activePowerup = null;
+  const POWERUP_SIZE = 26;
   let locked_horizontal_offset = 0;
   let locked_vertical_offset = 0;
   let locked_power_normalized = 0;
@@ -386,9 +389,7 @@
       nameOverlayEl.style.display = 'none';
       nameInputEl.removeEventListener('keydown', nameKeyHandler);
       gameStarted = true;
-      if (bulletButtonEl) bulletButtonEl.style.display = 'block';
-      if (multiButtonEl && multiThrowAvailable) multiButtonEl.style.display = 'block';
-      if (lockButtonEl && lockInAvailable) lockButtonEl.style.display = 'block';
+      updatePowerButtons();
       if (restartButtonEl) restartButtonEl.style.display = 'block';
     }
     function nameKeyHandler(e) {
@@ -443,7 +444,7 @@
       if (touchInstructionEl) touchInstructionEl.textContent = 'click anywhere on the screen';
     }
 
-    if (bulletTimeAvailable) {
+    if (bulletTimeCount > 0) {
       function bulletBtnHandler(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -454,26 +455,24 @@
       bulletButtonEl.addEventListener('touchstart', bulletBtnHandler);
     }
 
-    if (multiThrowAvailable) {
+    if (multiButtonEl) {
       function multiBtnHandler(e) {
         e.preventDefault();
         e.stopPropagation();
-        if (!gameStarted || !multiThrowAvailable) return;
+        if (!gameStarted || multiThrowCount <= 0) return;
         performMultiThrow();
-        if (multiButtonEl) multiButtonEl.style.display = 'none';
       }
       multiButtonEl.addEventListener('click', multiBtnHandler);
       multiButtonEl.addEventListener('touchstart', multiBtnHandler);
     }
 
-    if (lockInAvailable) {
+    if (lockButtonEl) {
       function lockBtnHandler(e) {
         e.preventDefault();
         e.stopPropagation();
-        if (!gameStarted || !lockInAvailable) return;
+        if (!gameStarted || lockInCount <= 0) return;
         logDebug('Lock button pressed');
         startLockInChallenge();
-        if (lockButtonEl) lockButtonEl.style.display = 'none';
       }
       lockButtonEl.addEventListener('click', lockBtnHandler);
       lockButtonEl.addEventListener('touchstart', lockBtnHandler);
@@ -800,6 +799,20 @@
     ctx.fillText("3", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_OUTERMOST + TARGET_RADIUS_OUTER)/2);
     ctx.fillText("5", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_OUTER + TARGET_RADIUS_MIDDLE)/2);
     ctx.fillText("7", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_MIDDLE + TARGET_RADIUS_INNER)/2);
+
+    if (activePowerup) {
+      const half = activePowerup.size / 2;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#000';
+      ctx.strokeRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 20px Courier New';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(activePowerup.type, activePowerup.x, activePowerup.y);
+    }
     ctx.restore();
   }
 
@@ -972,17 +985,17 @@
   }
 
   function activateBulletTime() {
-    if (!bulletTimeAvailable || bulletTimeActive) return;
-    bulletTimeAvailable = false;
+    if (bulletTimeCount <= 0 || bulletTimeActive) return;
+    bulletTimeCount--;
     bulletTimeActive = true;
     bulletTimeFactor = 0.2;
-    if (bulletButtonEl) bulletButtonEl.style.display = 'none';
+    updatePowerButtons();
   }
 
   function performMultiThrow() {
-    if (!multiThrowAvailable) return;
+    if (multiThrowCount <= 0) return;
     currentThrowIsMulti = true;
-    multiThrowAvailable = false;
+    multiThrowCount--;
     multiAxes = [];
     for (let i = 0; i < 5; i++) {
       const hOff = (Math.random() - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
@@ -1014,13 +1027,15 @@
       });
     }
     state = STATE_THROWING;
+    updatePowerButtons();
   }
 
   function startLockInChallenge() {
-    if (!lockInAvailable || lockInActive) return;
+    if (lockInCount <= 0 || lockInActive) return;
     logDebug('Starting lock-in challenge');
-    lockInAvailable = false;
+    lockInCount--;
     lockInActive = true;
+    updatePowerButtons();
     lockLetters = [];
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     for (let i = 0; i < 5; i++) {
@@ -1164,6 +1179,7 @@
     const tipY = hitY + rotY;
     let dx = tipX - TARGET_X;
     let dy = tipY - TARGET_Y;
+    checkPowerupHit(tipX, tipY);
     let dist = Math.sqrt(dx*dx + dy*dy);
     let msg = "Missed!";
     let points = 0;
@@ -1229,6 +1245,21 @@
 
   // ==== Utilities ====
 
+  function updatePowerButtons() {
+    if (bulletButtonEl) {
+      bulletButtonEl.textContent = `BULLET TIME (${bulletTimeCount})`;
+      bulletButtonEl.style.display = bulletTimeCount > 0 ? 'block' : 'none';
+    }
+    if (multiButtonEl) {
+      multiButtonEl.textContent = `AXE BARRAGE (${multiThrowCount})`;
+      multiButtonEl.style.display = multiThrowCount > 0 ? 'block' : 'none';
+    }
+    if (lockButtonEl) {
+      lockButtonEl.textContent = `LOCK IN (${lockInCount})`;
+      lockButtonEl.style.display = lockInCount > 0 ? 'block' : 'none';
+    }
+  }
+
   function resetGame() {
     score = 0;
     resultMsg = '';
@@ -1236,21 +1267,22 @@
     consecutiveBullseyes = 0;
     resultPoints = 0;
     sliderSpeedMultiplier = 1;
-    bulletTimeAvailable = true;
-    multiThrowAvailable = true;
-    lockInAvailable = true;
+    bulletTimeCount = 1;
+    multiThrowCount = 1;
+    lockInCount = 1;
     lockQueue = 0;
     bulletTimeActive = false;
     bulletTimeFactor = 1;
-    if (bulletButtonEl) bulletButtonEl.style.display = 'block';
-    if (multiButtonEl) multiButtonEl.style.display = 'block';
-    if (lockButtonEl) lockButtonEl.style.display = 'block';
+    updatePowerButtons();
     if (restartButtonEl) restartButtonEl.style.display = 'block';
     lastThrowMissed = false;
     hitMarks = [];
     resetForNextThrow();
   }
   function resetForNextThrow() {
+    activePowerup = null;
+    turnCount++;
+    if (turnCount >= 5 && turnCount % 5 === 0) spawnPowerup();
     horizontalSliderPos = Math.random();
     verticalSliderPos = Math.random();
     powerSliderPos = Math.random();
@@ -1269,6 +1301,28 @@
     lastThrowMissed = false;
     multiAxes = [];
     if (lockPromptEl) lockPromptEl.style.display = 'none';
+  }
+
+  function spawnPowerup() {
+    const types = ['B', 'A', 'L'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.random() * TARGET_RADIUS_OUTERMOST * 0.8;
+    const x = TARGET_X + radius * Math.cos(angle);
+    const y = TARGET_Y + radius * Math.sin(angle);
+    activePowerup = { type, x, y, size: POWERUP_SIZE };
+  }
+
+  function checkPowerupHit(tipX, tipY) {
+    if (!activePowerup) return;
+    const half = activePowerup.size / 2;
+    if (Math.abs(tipX - activePowerup.x) <= half && Math.abs(tipY - activePowerup.y) <= half) {
+      if (activePowerup.type === 'B') bulletTimeCount++;
+      if (activePowerup.type === 'A') multiThrowCount++;
+      if (activePowerup.type === 'L') lockInCount++;
+      updatePowerButtons();
+      activePowerup = null;
+    }
   }
 
   function getCookie(name) {
