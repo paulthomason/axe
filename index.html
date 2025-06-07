@@ -243,6 +243,7 @@
   const POWER_SLIDER_SPEED = 300; // increased for higher difficulty
   const POWER_SPEED_INCREASE_SCALE = 0.7; // lessens power meter acceleration
   const AXE_ROTATION_SPEED = 400 * Math.PI / 180; // rad/sec
+  const MAX_SLIDER_SPEED = 5; // cap for sliderSpeedMultiplier
 
   // Colors
   const COLOR_OUTERMOST = "#d8b373"; // outermost ring
@@ -299,6 +300,7 @@
   let vertSliderDir = 1;
   let powerSliderDir = 1;
   // Multiplier for slider speeds that increases when the player scores
+  // capped by MAX_SLIDER_SPEED
   let sliderSpeedMultiplier = 1;
   let bulletTimeAvailable = true;
   let multiThrowAvailable = true;
@@ -589,7 +591,7 @@
                   const ry = axeTipOffsetX * Math.sin(ax.angle) +
                               axeTipOffsetY * Math.cos(ax.angle);
                   hitMarks.push({ x: ax.hitX + rx, y: ax.hitY + ry, angle: ax.angle });
-                  sliderSpeedMultiplier *= 1.2;
+                  sliderSpeedMultiplier = Math.min(sliderSpeedMultiplier * 1.2, MAX_SLIDER_SPEED);
                   lastThrowMissed = false;
                 }
                 if (score > highScore) {
@@ -1202,7 +1204,7 @@
       }
     }
     if (resultPoints > 0) {
-      sliderSpeedMultiplier *= 1.2;
+      sliderSpeedMultiplier = Math.min(sliderSpeedMultiplier * 1.2, MAX_SLIDER_SPEED);
       lastThrowMissed = false;
       if (resultPoints === 10) {
         consecutiveBullseyes++;
