@@ -59,11 +59,15 @@
       padding: 8px;
       font-size: 1rem;
     }
-    #nameBox button {
-      margin-left: 8px;
-      padding: 8px 16px;
-      font-size: 1rem;
-    }
+      #nameBox button {
+        margin-left: 8px;
+        padding: 8px 16px;
+        font-size: 1rem;
+      }
+      #skipName {
+        margin-left: 0;
+        margin-top: 8px;
+      }
     #instructions {
       margin: 20px auto 0;
       max-width: 650px;
@@ -173,6 +177,8 @@
         <label for="nameInput">Who do you want to throw axes at?</label><br>
         <input id="nameInput" type="text" placeholder="Enter a name" />
         <button id="nameSubmit">Start</button>
+        <br>
+        <button id="skipName">I have no enemies.</button>
       </div>
     </div>
   </div>
@@ -371,6 +377,7 @@
     const nameOverlayEl = document.getElementById('nameOverlay');
     const nameInputEl = document.getElementById('nameInput');
     const nameSubmitEl = document.getElementById('nameSubmit');
+    const skipNameEl = document.getElementById('skipName');
 
     function applyName() {
       if (nameInputEl.value.trim()) targetName = nameInputEl.value.trim();
@@ -386,6 +393,7 @@
       if (e.key === 'Enter') applyName();
     }
     nameSubmitEl.addEventListener('click', applyName);
+    skipNameEl.addEventListener('click', applyName);
     nameInputEl.addEventListener('keydown', nameKeyHandler);
     nameInputEl.focus();
     canvas.width = canvas.clientWidth;
