@@ -678,6 +678,7 @@
     // Center target
     drawTarget();
     drawHitMarks();
+    drawPowerup();
 
     // Draw sliders
     if (state === STATE_AIM_HORIZONTAL) drawHorizontalSlider();
@@ -800,22 +801,6 @@
     ctx.fillText("5", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_OUTER + TARGET_RADIUS_MIDDLE)/2);
     ctx.fillText("7", TARGET_X + LABEL_OFFSET_X, TARGET_Y - (TARGET_RADIUS_MIDDLE + TARGET_RADIUS_INNER)/2);
 
-    if (activePowerup) {
-      const half = activePowerup.size / 2;
-      let color = '#0f0';
-      if (activePowerup.type === 'A') color = '#ff0';
-      if (activePowerup.type === 'L') color = '#0ff';
-      ctx.fillStyle = '#000';
-      ctx.fillRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = color;
-      ctx.strokeRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
-      ctx.fillStyle = color;
-      ctx.font = 'bold 24px Courier New';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(activePowerup.type, activePowerup.x, activePowerup.y);
-    }
     ctx.restore();
   }
 
@@ -898,6 +883,24 @@
       ctx.fill();
       ctx.restore();
     });
+  }
+
+  function drawPowerup() {
+    if (!activePowerup) return;
+    const half = activePowerup.size / 2;
+    let color = '#0f0';
+    if (activePowerup.type === 'A') color = '#ff0';
+    if (activePowerup.type === 'L') color = '#0ff';
+    ctx.fillStyle = '#000';
+    ctx.fillRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = color;
+    ctx.strokeRect(activePowerup.x - half, activePowerup.y - half, activePowerup.size, activePowerup.size);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 24px Courier New';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(activePowerup.type, activePowerup.x, activePowerup.y);
   }
 
   function drawHorizontalSlider() {
