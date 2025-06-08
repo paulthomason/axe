@@ -866,22 +866,23 @@
   }
 
   function drawHitMarks() {
-    const size = 16;
+    const len = 20;
+    const width = 4;
     hitMarks.forEach(mark => {
       ctx.save();
       ctx.translate(mark.x, mark.y);
       ctx.rotate(mark.angle);
-      const grad = ctx.createLinearGradient(-size / 2, 0, size / 2, 0);
+      const grad = ctx.createLinearGradient(-len / 2, 0, len / 2, 0);
       grad.addColorStop(0, '#3b2a1a');
       grad.addColorStop(0.5, '#a6784f');
       grad.addColorStop(1, '#3b2a1a');
-      ctx.fillStyle = grad;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(-size / 2, 0);
-      ctx.lineTo(0, size);
-      ctx.lineTo(size / 2, 0);
-      ctx.closePath();
-      ctx.fill();
+      ctx.moveTo(-len / 2, 0);
+      ctx.lineTo(len / 2, 0);
+      ctx.stroke();
       ctx.restore();
     });
   }
