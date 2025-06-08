@@ -189,7 +189,7 @@
     <button id="lockButton">LOCK IN (1)</button>
   </div>
   <div id="instructions">
-    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Use the BULLET TIME button to slow the sliders. Use the AXE BARRAGE button to unleash five random throws. Use the LOCK IN button for a chance at three perfect hits. Earn more power-ups by hitting the bonus squares.
+    Use <b>SPACEBAR</b> or <span id="touchInstruction">tap the button below</span> to lock each slider and throw. Hold <b>Q</b> and <b>P</b> together to steady the sliders when they pass through the sweet spot. Use the BULLET TIME button to slow the sliders. Use the AXE BARRAGE button to unleash five random throws. Use the LOCK IN button for a chance at three perfect hits. Earn more power-ups by hitting the bonus squares.
   </div>
   <div id="debugConsole"></div>
   <script>
@@ -312,6 +312,7 @@
   let lockQueue = 0;
   let bulletTimeActive = false;
   let bulletTimeFactor = 1;
+  let qPressed = false, pPressed = false; // hold breath keys
   let gameStarted = false;
   let turnCount = 0;
   let activePowerup = null;
@@ -427,6 +428,14 @@
     const isTouchOnly = navigator.maxTouchPoints > 0 && !window.matchMedia('(any-hover: hover)').matches;
 
     window.addEventListener('keydown', handleInput);
+    window.addEventListener('keydown', e => {
+      if (e.key === 'q' || e.key === 'Q') qPressed = true;
+      if (e.key === 'p' || e.key === 'P') pPressed = true;
+    });
+    window.addEventListener('keyup', e => {
+      if (e.key === 'q' || e.key === 'Q') qPressed = false;
+      if (e.key === 'p' || e.key === 'P') pPressed = false;
+    });
 
     function triggerTap(e) {
       e.preventDefault(); // prevent 300ms click delay and synthetic click
@@ -551,6 +560,21 @@
 
   // ==== Update ====
   function update(dt) {
+    if (bulletTimeActive) {
+      bulletTimeFactor = 0.2;
+    } else {
+      let hold = false;
+      if (qPressed && pPressed) {
+        if (state === STATE_AIM_HORIZONTAL || state === STATE_AIM_VERTICAL || state === STATE_AIM_POWER) {
+          let pos = 0, start = 0.4, end = 0.6;
+          if (state === STATE_AIM_HORIZONTAL) pos = horizontalSliderPos;
+          else if (state === STATE_AIM_VERTICAL) pos = verticalSliderPos;
+          else { pos = powerSliderPos; start = 0.55; end = 0.75; }
+          if (pos >= start && pos <= end) hold = true;
+        }
+      }
+      bulletTimeFactor = hold ? 0.2 : 1;
+    }
     switch (state) {
       case STATE_LOADING:
         // Nothing to update
