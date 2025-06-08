@@ -389,6 +389,7 @@
       nameOverlayEl.style.display = 'none';
       nameInputEl.removeEventListener('keydown', nameKeyHandler);
       gameStarted = true;
+      logDebug(`Game started${targetName ? ` for ${targetName}` : ''}`);
       updatePowerButtons();
       if (restartButtonEl) restartButtonEl.style.display = 'block';
     }
@@ -996,11 +997,13 @@
     bulletTimeActive = true;
     bulletTimeFactor = 0.2;
     updatePowerButtons();
+    logDebug('Bullet time activated');
   }
 
   function performMultiThrow() {
     if (multiThrowCount <= 0) return;
     currentThrowIsMulti = true;
+    logDebug('Starting multi-throw');
     multiThrowCount--;
     multiAxes = [];
     for (let i = 0; i < 5; i++) {
@@ -1110,38 +1113,42 @@
     if (state === STATE_LOCK_CHALLENGE) return;
     if (e.code === 'Space') {
       e.preventDefault();
+      logDebug(`Space pressed during state ${state}`);
       switch (state) {
         case STATE_AIM_HORIZONTAL:
           // Lock horizontal offset
           locked_horizontal_offset =
             (horizontalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
           state = STATE_AIM_VERTICAL;
+          logDebug('Locked horizontal');
           break;
         case STATE_AIM_VERTICAL:
           // Lock vertical offset
           locked_vertical_offset =
             (verticalSliderPos - 0.5) * 2 * TARGET_RADIUS_OUTERMOST;
           state = STATE_AIM_POWER;
+          logDebug('Locked vertical');
           break;
         case STATE_AIM_POWER:
           // Lock power, throw!
           locked_power_normalized = powerSliderPos;
           startThrow();
           break;
-          case STATE_SHOWING_RESULT:
-            if (lastThrowMissed) {
-              if (!currentThrowIsMulti) lives--;
-              if (lives <= 0) {
-                state = STATE_GAME_OVER;
-              } else {
-                state = STATE_AIM_HORIZONTAL;
-                resetForNextThrow();
-              }
+        case STATE_SHOWING_RESULT:
+          if (lastThrowMissed) {
+            if (!currentThrowIsMulti) lives--;
+            if (lives <= 0) {
+              state = STATE_GAME_OVER;
             } else {
               state = STATE_AIM_HORIZONTAL;
               resetForNextThrow();
             }
-            break;
+          } else {
+            state = STATE_AIM_HORIZONTAL;
+            resetForNextThrow();
+          }
+          logDebug('Advancing after result');
+          break;
         case STATE_GAME_OVER:
           resetGame();
           state = STATE_AIM_HORIZONTAL;
@@ -1154,6 +1161,9 @@
   function startThrow() {
     state = STATE_THROWING;
     currentThrowIsMulti = false;
+    logDebug(
+      `Starting throw hOff=${locked_horizontal_offset.toFixed(1)}, vOff=${locked_vertical_offset.toFixed(1)}, power=${locked_power_normalized.toFixed(2)}`
+    );
     axeIsFlying = true;
     axeThrowProgress = 0;
     axeAngle = -AXE_ROTATION_SPEED * axeThrowDuration;
@@ -1206,6 +1216,7 @@
   }
 
   function evaluateThrow() {
+    const prevPowerup = activePowerup;
     const {msg, points} = evaluateHit(axeHitX, axeHitY, axeAngle);
     const rotX = axeTipOffsetX * Math.cos(axeAngle) -
                  axeTipOffsetY * Math.sin(axeAngle);
@@ -1213,6 +1224,13 @@
                  axeTipOffsetY * Math.cos(axeAngle);
     const tipX = axeHitX + rotX;
     const tipY = axeHitY + rotY;
+    if (prevPowerup && activePowerup === prevPowerup) {
+      const dx = tipX - prevPowerup.x;
+      const dy = tipY - prevPowerup.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      logDebug(`Missed powerup by ${Math.round(dist)} pixels`, 'warn');
+    }
+    logDebug(`Throw result: ${msg} (${points}) at (${Math.round(tipX)}, ${Math.round(tipY)})`);
     if (points > 0) {
       hitMarks.push({ x: tipX, y: tipY, angle: axeAngle });
     }
@@ -1281,6 +1299,7 @@
     bulletTimeFactor = 1;
     updatePowerButtons();
     if (restartButtonEl) restartButtonEl.style.display = 'block';
+    logDebug('Game reset');
     lastThrowMissed = false;
     hitMarks = [];
     resetForNextThrow();
@@ -1288,6 +1307,7 @@
   function resetForNextThrow() {
     activePowerup = null;
     turnCount++;
+    logDebug(`Preparing turn ${turnCount}`);
     if (turnCount >= 5 && turnCount % 5 === 0) spawnPowerup();
     horizontalSliderPos = Math.random();
     verticalSliderPos = Math.random();
@@ -1317,12 +1337,14 @@
     const x = TARGET_X + radius * Math.cos(angle);
     const y = TARGET_Y + radius * Math.sin(angle);
     activePowerup = { type, x, y, size: POWERUP_SIZE };
+    logDebug(`Spawned powerup ${type} at (${Math.round(x)}, ${Math.round(y)})`);
   }
 
   function checkPowerupHit(tipX, tipY) {
     if (!activePowerup) return;
     const half = activePowerup.size / 2;
     if (Math.abs(tipX - activePowerup.x) <= half && Math.abs(tipY - activePowerup.y) <= half) {
+      logDebug(`Powerup ${activePowerup.type} collected`);
       if (activePowerup.type === 'B') bulletTimeCount++;
       if (activePowerup.type === 'A') multiThrowCount++;
       if (activePowerup.type === 'L') lockInCount++;
