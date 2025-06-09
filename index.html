@@ -37,7 +37,7 @@
       border-radius: 10px;
       border: 1.5px solid #b0b0c0;
     }
-    #nameOverlay {
+    #modeOverlay {
       position: absolute;
       top: 0;
       left: 0;
@@ -48,26 +48,18 @@
       align-items: center;
       justify-content: center;
     }
-    #nameBox {
+    #modeBox {
       background: #fff;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       text-align: center;
     }
-    #nameBox input {
-      padding: 8px;
-      font-size: 1rem;
+    #modeBox button {
+      margin: 0 8px;
+      padding: 12px 24px;
+      font-size: 1.1rem;
     }
-      #nameBox button {
-        margin-left: 8px;
-        padding: 8px 16px;
-        font-size: 1rem;
-      }
-      #skipName {
-        margin-left: 0;
-        margin-top: 8px;
-      }
     #instructions {
       margin: 20px auto 0;
       max-width: 650px;
@@ -172,13 +164,10 @@
     <button id="restartButton">Restart</button>
     <div id="lockPrompt"></div>
     <canvas id="gameCanvas"></canvas>
-    <div id="nameOverlay">
-      <div id="nameBox">
-        <label for="nameInput">Who do you want to throw axes at?</label><br>
-        <input id="nameInput" type="text" placeholder="Enter a name" />
-        <button id="nameSubmit">Start</button>
-        <br>
-        <button id="skipName">I have no enemies.</button>
+    <div id="modeOverlay">
+      <div id="modeBox">
+        <button id="freePlayBtn">Free Play</button>
+        <button id="timedModeBtn">Timed Mode</button>
       </div>
     </div>
   </div>
@@ -286,6 +275,8 @@
   let score = 0;
   let highScore = 0;
   let lastThrowMissed = false;
+  let timedMode = false;
+  let timeRemaining = 0;
   let lives = 3;
   let consecutiveBullseyes = 0;
   let currentThrowIsMulti = false;
@@ -380,33 +371,22 @@
     ctx = canvas.getContext('2d');
     debugConsoleEl = document.getElementById('debugConsole');
     initDebugConsole();
-    const nameOverlayEl = document.getElementById('nameOverlay');
-    const nameInputEl = document.getElementById('nameInput');
-    const nameSubmitEl = document.getElementById('nameSubmit');
-    const skipNameEl = document.getElementById('skipName');
+    const modeOverlayEl = document.getElementById('modeOverlay');
+    const freePlayBtn = document.getElementById('freePlayBtn');
+    const timedModeBtn = document.getElementById('timedModeBtn');
 
-    function applyName() {
-      if (nameInputEl.value.trim()) targetName = nameInputEl.value.trim();
-      nameOverlayEl.style.display = 'none';
-      nameInputEl.removeEventListener('keydown', nameKeyHandler);
+    function startGame(isTimed) {
+      timedMode = isTimed;
+      if (timedMode) timeRemaining = 90;
+      modeOverlayEl.style.display = 'none';
       gameStarted = true;
-      logDebug(`Game started${targetName ? ` for ${targetName}` : ''}`);
+      logDebug(`Game started in ${timedMode ? 'Timed Mode' : 'Free Play'}`);
       updatePowerButtons();
       if (restartButtonEl) restartButtonEl.style.display = 'block';
     }
-    function nameKeyHandler(e) {
-      if (e.key === 'Enter') applyName();
-    }
-    nameSubmitEl.addEventListener('click', applyName);
-    function skipNameHandler(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      applyName();
-    }
-    skipNameEl.addEventListener('click', skipNameHandler);
-    skipNameEl.addEventListener('touchstart', skipNameHandler);
-    nameInputEl.addEventListener('keydown', nameKeyHandler);
-    nameInputEl.focus();
+
+    freePlayBtn.addEventListener('click', () => startGame(false));
+    timedModeBtn.addEventListener('click', () => startGame(true));
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
     updateCanvasConstants();
@@ -420,7 +400,7 @@
     multiButtonEl = document.getElementById('multiButton');
     lockButtonEl = document.getElementById('lockButton');
     lockPromptEl = document.getElementById('lockPrompt');
-    const restartButtonEl = document.getElementById('restartButton');
+    restartButtonEl = document.getElementById('restartButton');
     const touchInstructionEl = document.getElementById('touchInstruction');
 
     highScore = parseInt(getCookie('highScore')) || 0;
@@ -560,6 +540,13 @@
 
   // ==== Update ====
   function update(dt) {
+    if (timedMode && gameStarted && state !== STATE_GAME_OVER && state !== STATE_LOADING) {
+      timeRemaining -= dt;
+      if (timeRemaining <= 0) {
+        timeRemaining = 0;
+        state = STATE_GAME_OVER;
+      }
+    }
     if (bulletTimeActive) {
       bulletTimeFactor = 0.2;
     } else {
@@ -698,6 +685,9 @@
     ctx.fillStyle = "#1a1a1d";
     ctx.fillText("Score: " + score, 22, 64);
     ctx.fillText("High: " + highScore, 22, 88);
+    if (timedMode) {
+      ctx.fillText("Time: " + Math.ceil(timeRemaining), 22, 112);
+    }
     ctx.restore();
 
     // Center target
@@ -1322,6 +1312,7 @@
     lockQueue = 0;
     bulletTimeActive = false;
     bulletTimeFactor = 1;
+    if (timedMode) timeRemaining = 90;
     updatePowerButtons();
     if (restartButtonEl) restartButtonEl.style.display = 'block';
     logDebug('Game reset');
