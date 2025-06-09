@@ -471,8 +471,10 @@
     function restartHandler(e) {
       e.preventDefault();
       e.stopPropagation();
+      gameStarted = false;
       resetGame();
       state = STATE_AIM_HORIZONTAL;
+      if (modeOverlayEl) modeOverlayEl.style.display = 'flex';
     }
     restartButtonEl.addEventListener('click', restartHandler);
     restartButtonEl.addEventListener('touchstart', restartHandler);
@@ -1314,7 +1316,7 @@
     bulletTimeFactor = 1;
     if (timedMode) timeRemaining = 90;
     updatePowerButtons();
-    if (restartButtonEl) restartButtonEl.style.display = 'block';
+    if (restartButtonEl && gameStarted) restartButtonEl.style.display = 'block';
     logDebug('Game reset');
     lastThrowMissed = false;
     hitMarks = [];
